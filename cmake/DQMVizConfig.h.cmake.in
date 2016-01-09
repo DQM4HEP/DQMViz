@@ -1,0 +1,17 @@
+#ifndef DQMVizConfig_H
+#define DQMVizConfig_H
+
+// version macros
+#define DQMViz_MAJOR_VERSION @DQMViz_VERSION_MAJOR@
+#define DQMViz_MINOR_VERSION @DQMViz_VERSION_MINOR@
+#define DQMViz_PATCH_LEVEL @DQMViz_VERSION_PATCH@
+#define DQMViz_VERSION_STR "@DQMViz_VERSION_MAJOR@.@DQMViz_VERSION_MINOR@.@DQMViz_VERSION_PATCH@"
+#define DQMViz_VERSION_GE( MAJV , MINV , PLEV )  \
+     ( (DQMViz_MAJOR_VERSION > MAJV) || ( (DQMViz_MAJOR_VERSION == MAJV) && (DQMViz_MINOR_VERSION > MINV) ) \
+  || ( (DQMViz_MAJOR_VERSION == MAJV) && (DQMViz_MINOR_VERSION == MINV) && (DQMViz_PATCH_LEVEL >= PLEV) ) )
+
+// project source dir
+// useful for icons
+#define DQMViz_DIR "@CMAKE_INSTALL_PREFIX@"
+
+#endif // DQMVizConfig_H

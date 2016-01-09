@@ -1,0 +1,86 @@
+##############################################################################
+# cmake configuration file for DQMViz
+#
+# requires:
+#   MacroCheckPackageLibs.cmake for checking package libraries
+#   MacroExportPackageDeps.cmake for exporting package dependencies
+#
+# returns following variables:
+#
+#   DQMViz_FOUND      : set to TRUE if DQMViz found
+#       if FIND_PACKAGE called with REQUIRED and COMPONENTS arguments
+#       DQMViz_FOUND is only set to TRUE if ALL components are also found
+#       if REQUIRED is NOT set components may or may not be available
+#
+#   DQMViz_ROOT       : path to this DQMViz installation
+#   DQMViz_VERSION    : package version
+#   DQMViz_LIBRARIES  : list of DQMViz libraries (NOT including COMPONENTS)
+#   DQMViz_INCLUDE_DIRS  : list of paths to be used with INCLUDE_DIRECTORIES
+#   DQMViz_LIBRARY_DIRS  : list of paths to be used with LINK_DIRECTORIES
+#   DQMViz_COMPONENT_LIBRARIES      : list of DQMViz component libraries
+#   DQMViz_${COMPONENT}_FOUND       : set to TRUE or FALSE for each library
+#   DQMViz_${COMPONENT}_LIBRARY     : path to individual libraries
+#   DQMViz_${COMPONENT}_LIB_DEPENDS : individual library dependencies
+#
+# @author Jan Engels, Desy
+# Modified for DQMViz use by : Remi Ete, IPNL
+##############################################################################
+
+SET( DQMViz_ROOT "@CMAKE_INSTALL_PREFIX@" )
+SET( DQMViz_VERSION "@DQMViz_VERSION@" )
+
+
+# ---------- include dirs -----------------------------------------------------
+# do not store find results in cache
+SET( DQMViz_INCLUDE_DIRS DQMViz_INCLUDE_DIRS-NOTFOUND )
+MARK_AS_ADVANCED( DQMViz_INCLUDE_DIRS )
+
+FIND_PATH( DQMViz_INCLUDE_DIRS
+	NAMES DQMVizConfig.h
+	PATHS @CMAKE_INSTALL_PREFIX@/include/
+	NO_DEFAULT_PATH
+)
+
+
+
+# ---------- libraries --------------------------------------------------------
+INCLUDE( "@CMAKE_INSTALL_PREFIX@/cmake/MacroCheckPackageLibs.cmake" )
+
+# only standard libraries should be passed as arguments to CHECK_PACKAGE_LIBS
+# additional components are set by cmake in variable PKG_FIND_COMPONENTS
+# first argument should be the package name
+CHECK_PACKAGE_LIBS( DQMViz DQMViz )
+
+
+
+# ---------- dependencies -----------------------------------------------------
+INCLUDE( "@CMAKE_INSTALL_PREFIX@/cmake/MacroExportPackageDeps.cmake" )
+# exports following package dependencies (if set)
+# first argument of macro should be the package name
+SET( DQMViz_DEPENDS_INCLUDE_DIRS  @DQMViz_DEPENDS_INCLUDE_DIRS@ )
+SET( DQMViz_DEPENDS_LIBRARY_DIRS  @DQMViz_DEPENDS_LIBRARY_DIRS@ )
+SET( DQMViz_DEPENDS_LIBRARIES  @DQMViz_DEPENDS_LIBRARIES@ )
+EXPORT_PACKAGE_DEPENDENCIES( DQMViz )
+
+
+
+# ---------- final checking ---------------------------------------------------
+INCLUDE( FindPackageHandleStandardArgs )
+# set DQMViz_FOUND to TRUE if all listed variables are TRUE and not empty
+# DQMViz_COMPONENT_VARIABLES will be set if FIND_PACKAGE is called with REQUIRED argument
+FIND_PACKAGE_HANDLE_STANDARD_ARGS( DQMViz DEFAULT_MSG DQMViz_ROOT DQMViz_INCLUDE_DIRS DQMViz_LIBRARIES ${DQMViz_COMPONENT_VARIABLES} )
+
+SET( DQMViz_FOUND ${DQMViz_FOUND} )
+
+
+
+# ---------- definitions ------------------------------------------------------
+IF( DQMViz_FOUND )
+
+    IF( CMAKE_BUILD_TYPE STREQUAL "Debug" OR
+        CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" )
+        MARK_AS_ADVANCED( DQMViz_DEFINITIONS )
+    ENDIF()
+
+ENDIF()
+
