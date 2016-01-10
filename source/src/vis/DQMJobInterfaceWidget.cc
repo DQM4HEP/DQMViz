@@ -222,7 +222,7 @@ void DQMJobInterfaceWidget::contextMenuEvent(QContextMenuEvent *event)
         if (status.isEmpty())
             return;
 
-        if ( status == "D" ) //Dead
+        if ( status == "D" || status == "X") //Dead
         {
             if (pCurrentItem->text(PID).toInt())
                 m_pRestartJobAction->setEnabled(true);
@@ -324,7 +324,7 @@ void DQMJobInterfaceWidget::startSelectedJob()
 void DQMJobInterfaceWidget::startAllJobs()
 {
     const Json::Value &root(m_pJobIterface->getRoot());
-    StringVector hostList = root["hosts"].getMemberNames();
+    StringVector hostList = root["HOSTS"].getMemberNames();
 
     // loop over hosts
     for(StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
@@ -496,13 +496,13 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
 {
     m_pTreeWidget->clear();
 
-    StringVector hostList = root["hosts"].getMemberNames();
+    StringVector hostList = root["HOSTS"].getMemberNames();
 
     // loop over hosts
     for(StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
         endIter != iter ; ++iter)
     {
-        const Json::Value &host(root["hosts"][*iter]);
+        const Json::Value &host(root["HOSTS"][*iter]);
 
         QStringList name((*iter).c_str());
 
@@ -515,7 +515,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
         for(unsigned int j=0 ; j<host.size() ; j++)
         {
             QStringList jobHeader;
-            jobHeader << host[j]["Name"].asString().c_str() << host[j]["Program"].asString().c_str() << host[j]["PID"].asString().c_str() << host[j]["Status"].asString().c_str() ;
+            jobHeader << host[j]["NAME"].asString().c_str() << host[j]["PROGRAM"].asString().c_str() << host[j]["PID"].asString().c_str() << host[j]["STATUS"].asString().c_str() ;
 
             QTreeWidgetItem *pJobItem = new QTreeWidgetItem(jobHeader);
 
@@ -530,7 +530,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
             pEnvironmentItem->setData(0, Qt::UserRole, JOB_ENV_ITEM);
             pJobItem->addChild(pEnvironmentItem);
 
-            const Json::Value &envJsonValue = host[j]["Environnement"];
+            const Json::Value &envJsonValue = host[j]["ENV"];
 
             for(unsigned int e=0 ; e<envJsonValue.size() ; e++)
             {
@@ -548,7 +548,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
             pArgsItem->setData(0, Qt::UserRole, JOB_ARGS_ITEM);
             pJobItem->addChild(pArgsItem);
 
-            const Json::Value &argsJsonValue = host[j]["Arguments"];
+            const Json::Value &argsJsonValue = host[j]["ARGS"];
 
             for(unsigned int e=0 ; e<argsJsonValue.size() ; e++)
             {
@@ -579,6 +579,7 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
     stateToColorMap["R"] = QColor(Qt::green); // running
     stateToColorMap["D"] = QColor(Qt::darkGreen); // un-interruptible sleep
     stateToColorMap["S"] = QColor(Qt::darkGreen); // interruptible sleep
+    stateToColorMap["X"] = QColor(Qt::red); // interruptible sleep
 
     for(unsigned int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
     {
@@ -613,22 +614,17 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
 
             if(!found)
             {
-                pJobItem->setText(STATUS, "DEAD");
+                pJobItem->setText(STATUS, "X (dead)");
                 pJobItem->setText(PID, "");
             }
 
-            if(pJobItem->text(STATUS) == "DEAD")
-                pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::red));
             // cases available in /proc/pid/status file
-            else
-            {
-                QMap<QString, QColor>::iterator findIter = stateToColorMap.find(pJobItem->text(STATUS).at(0));
+			QMap<QString, QColor>::iterator findIter = stateToColorMap.find(pJobItem->text(STATUS).at(0));
 
-                if(findIter != stateToColorMap.end())
-                    pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(findIter.value()));
-                else
-                    pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
-            }
+			if(findIter != stateToColorMap.end())
+				pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(findIter.value()));
+			else
+				pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
         }
 
     }
