@@ -5,7 +5,7 @@
 #######################################################
 
 # include directories
-INCLUDE_DIRECTORIES( include )
+INCLUDE_DIRECTORIES( BEFORE include )
 
 # require proper c++
 ADD_DEFINITIONS( "-pedantic -Wunused-value -O2" )
@@ -23,7 +23,8 @@ QT4_WRAP_CPP (
     include/dqm4hep/vis/DQMGuiMonitorElement.h
     include/dqm4hep/vis/DQMMonitorElementView.h
     include/dqm4hep/vis/DQMGuiMonitorElementClient.h
-    include/dqm4hep/vis/DQMJobInterfaceWidget.h
+    include/dqm4hep/vis/DQMJobInterface.h
+	include/dqm4hep/vis/DQMJobInterfaceWidget.h
     include/dqm4hep/vis/DQMRunControlWidget.h
     include/dqm4hep/vis/DQMAutomaticQueryWidget.h
     include/dqm4hep/vis/DQMCanvas.h
