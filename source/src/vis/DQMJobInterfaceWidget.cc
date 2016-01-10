@@ -27,6 +27,7 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/vis/DQMJobInterfaceWidget.h"
+#include "dqm4hep/vis/DQMJobInterface.h"
 #include "DQMVizConfig.h"
 
 // qt headers
@@ -49,9 +50,10 @@ namespace dqm4hep
 {
 
 DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
-    QWidget(pParent)
+    QWidget(pParent),
+    m_pAutomaticModeButton(0)
 {
-    m_pJobIterface = new DimJobInterface();
+    m_pJobIterface = new DQMJobInterface();
 
     QLayout *pMainLayout = new QVBoxLayout();
     setLayout(pMainLayout);
@@ -60,6 +62,20 @@ DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
 
     QGroupBox *pComboBoxGroupBox = new QGroupBox();
     pMainLayout->addWidget(pComboBoxGroupBox);
+
+    m_pAutomaticModeButton = new QPushButton("Start");
+	pComboBoxLayout->addWidget(m_pAutomaticModeButton);
+
+	QLabel *pUpdatePeriodLabel = new QLabel("Update period (secs) : ");
+	pComboBoxLayout->addWidget(pUpdatePeriodLabel);
+
+	m_pUpdatePeriodSpinBox = new QSpinBox();
+	m_pUpdatePeriodSpinBox->setValue(5);
+	pComboBoxLayout->addWidget(m_pUpdatePeriodSpinBox);
+
+	connect(m_pAutomaticModeButton, SIGNAL(clicked()), this, SLOT(handleAutomaticModeButtonClicked()));
+	connect(m_pUpdatePeriodSpinBox, SIGNAL(valueChanged(int)), this, SLOT(handleAutomaticModeValueChanged(int)));
+	connect(m_pJobIterface, SIGNAL(statusReceived(const QString &)), this, SLOT(updateStatus(const QString &)));
 
     QSpacerItem *p_HSpacer = new QSpacerItem(1, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
     pComboBoxLayout->addSpacerItem(p_HSpacer);
@@ -628,6 +644,103 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
         }
 
     }
+
+    m_pTreeWidget->header()->resizeSections(QHeaderView::Stretch);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMJobInterfaceWidget::handleAutomaticModeButtonClicked()
+{
+	if(m_pJobIterface->started())
+	{
+		m_pJobIterface->stopUpdate();
+		m_pAutomaticModeButton->setText("Start");
+	}
+	else
+	{
+		int nSeconds = m_pUpdatePeriodSpinBox->value();
+		m_pJobIterface->startUpdate(nSeconds);
+		m_pAutomaticModeButton->setText("Stop");
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMJobInterfaceWidget::handleAutomaticModeValueChanged(int value)
+{
+	if(m_pJobIterface->started())
+	{
+		m_pJobIterface->stopUpdate();
+		m_pJobIterface->startUpdate(value);
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
+{
+	const Json::Value value = m_pJobIterface->processStatus(hostName.toStdString())["JOBS"];
+    QTreeWidgetItem *pHostItem = 0;
+
+    for(unsigned int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
+    {
+        QTreeWidgetItem *pItem = m_pTreeWidget->topLevelItem(i);
+
+        if(hostName == pItem->text(NAME))
+        	pHostItem = pItem;
+    }
+
+    if(!pHostItem)
+    	return;
+
+    QMap<QString, QColor> stateToColorMap;
+    stateToColorMap["Z"] = QColor(Qt::red); // zombie
+    stateToColorMap["T"] = QColor(Qt::darkRed); // traced or stopped
+    stateToColorMap["R"] = QColor(Qt::green); // running
+    stateToColorMap["D"] = QColor(Qt::darkGreen); // un-interruptible sleep
+    stateToColorMap["S"] = QColor(Qt::darkGreen); // interruptible sleep
+    stateToColorMap["X"] = QColor(Qt::red); // interruptible sleep
+
+	for(unsigned int j=0 ; j<pHostItem->childCount() ; j++)
+	{
+		QTreeWidgetItem *pJobItem = pHostItem->child(j);
+
+		std::string jobName = pJobItem->text(NAME).toStdString();
+
+		bool found = false;
+
+		for(unsigned int v=0 ; v<value.size() ; v++)
+		{
+			std::string vHost = value[v]["HOST"].asString();
+			std::string vJobName = value[v]["NAME"].asString();
+			uint32_t vJobPid = value[v]["PID"].asUInt();
+			std::string vJobStatus = value[v]["STATUS"].asString();
+
+			if(vJobName == jobName)
+			{
+				pJobItem->setText(STATUS, QString(vJobStatus.c_str()).trimmed());
+				pJobItem->setText(PID, QString::number(vJobPid));
+
+				found = true;
+				break;
+			}
+		}
+
+		if(!found)
+		{
+			pJobItem->setText(STATUS, "X (dead)");
+			pJobItem->setText(PID, "");
+		}
+
+		// cases available in /proc/pid/status file
+		QMap<QString, QColor>::iterator findIter = stateToColorMap.find(pJobItem->text(STATUS).at(0));
+
+		if(findIter != stateToColorMap.end())
+			pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(findIter.value()));
+		else
+			pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
+	}
 
     m_pTreeWidget->header()->resizeSections(QHeaderView::Stretch);
 }

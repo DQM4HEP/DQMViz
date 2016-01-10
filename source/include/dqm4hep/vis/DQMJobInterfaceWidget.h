@@ -32,9 +32,6 @@
 // -- dqm4hep headers
 #include "dqm4hep/DQM4HEP.h"
 
-// -- dimjc headers
-#include "DimJobInterface.h"
-
 // -- qt headers
 #include <QWidget>
 #include <QComboBox>
@@ -42,9 +39,15 @@
 #include <QTreeWidget>
 #include <QPushButton>
 #include <QMainWindow>
+#include <QSpinBox>
+
+#include "json/json.h"
 
 namespace dqm4hep
 {
+
+class DQMJobInterface;
+
 /** DQMJobInterfaceWidget class
  */
 class DQMJobInterfaceWidget : public QWidget
@@ -52,8 +55,8 @@ class DQMJobInterfaceWidget : public QWidget
     Q_OBJECT
 
 public:
-    /**
-         */
+	/**
+	 */
     enum ItemType
     {
         HOST_ITEM,
@@ -128,6 +131,18 @@ private slots:
          */
     void reloadJsonFile();
 
+    /**
+     */
+    void handleAutomaticModeButtonClicked();
+
+    /**
+     */
+    void handleAutomaticModeValueChanged(int value);
+
+    /**
+     */
+    void updateStatus(const QString &hostName);
+
 private:
 
     enum ColumnType
@@ -149,7 +164,11 @@ private:
     void createMenus();
 
 private:
-    DimJobInterface        *m_pJobIterface;
+
+    DQMJobInterface        *m_pJobIterface;
+
+    QPushButton            *m_pAutomaticModeButton;
+    QSpinBox               *m_pUpdatePeriodSpinBox;
 
     QComboBox              *m_pKillComboBoxWidget;
     QLabel                 *pKillComboBoxCaption;
