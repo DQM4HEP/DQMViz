@@ -41,6 +41,7 @@
 #include <QMainWindow>
 #include <QSpinBox>
 
+// -- json headers
 #include "json/json.h"
 
 namespace dqm4hep
@@ -55,7 +56,7 @@ class DQMJobInterfaceWidget : public QWidget
     Q_OBJECT
 
 public:
-	/**
+	/** ItemType enum
 	 */
     enum ItemType
     {
@@ -69,67 +70,71 @@ public:
         VARIABLE_ITEM
     };
 
-    /** Constructor
-         */
-    DQMJobInterfaceWidget(QWidget *pParent = NULL);
+	/** Constructor
+	 */
+	DQMJobInterfaceWidget(QWidget *pParent = NULL);
 
-    /** Destructor
-         */
-    ~DQMJobInterfaceWidget();
+	/** Destructor
+	 */
+	~DQMJobInterfaceWidget();
+
+    /** Get the current json file name
+     */
+    const std::string &getCurrentJsonFile() const;
+
+    /** Get the job interface implementation
+     */
+    DQMJobInterface *getJobInterface() const;
 
 public slots:
-    /**
-         */
-    void loadJsonFile(const std::string &fileName);
+	/** Load json file. Clear the pocess table
+	 */
+	void loadJsonFile(const std::string &fileName);
 
-    /**
-         */
-    void startHostJobs();
+	/**
+	 */
+	void startHostJobs();
 
-    /**
-         */
-    void startAllJobs();
+	/**
+	 */
+	void startAllJobs();
 
-    /**
-         */
-    void startSelectedJob();
+	/**
+	 */
+	void startSelectedJob();
 
-    /**
-         */
-    void clearHostJobs();
+	/**
+	 */
+	void clearHostJobs();
 
-    /**
-         */
-    void clearAllJobs();
+	/**
+	 */
+	void clearAllJobs();
 
-    /**
-         */
-    void killSelectedJob();
+	/**
+	 */
+	void killSelectedJob();
 
-    /**
-         */
-    //        void killAllJobs();
+	/**
+	 */
+	void restartSelectedJob();
 
-    /**
-         */
-    void restartSelectedJob();
+	/**
+	 */
+	void restartAllJobs();
 
-    /**
-         */
-    void restartAllJobs();
-
-    /**
-         */
-    void updateJobStatus();
+	/**
+	 */
+	void updateJobStatus();
 
 private slots:
-    /**
-         */
-    void loadJsonFile();
+	/**
+	 */
+	void loadJsonFile();
 
-    /**
-         */
-    void reloadJsonFile();
+	/**
+	 */
+	void reloadJsonFile();
 
     /**
      */
@@ -152,26 +157,52 @@ private:
         PID,
         STATUS
     };
-    /**
-         */
-    void loadJson(const Json::Value &root);
+
+	/**
+	 */
+	void loadJson(const Json::Value &root);
 
     /**
-         */
+     */
     void updateStatus(const Json::Value &value);
 
+    /**
+     */
     void createActions();
+
+    /**
+     */
     void createMenus();
+
+    /**
+     */
+    void contextMenuEvent(QContextMenuEvent *event);
+
+    /**
+     */
+    bool jobControlExists(const std::string &hostName) const;
+
+    /**
+     */
+    QStringList getNonRunningJobControls() const;
+
+    /**
+     */
+    void popupMissingJobControl(const QString &hostName);
+
+    /**
+     */
+    void popupMissingJobControls(const QStringList &hostName);
 
 private:
 
     DQMJobInterface        *m_pJobIterface;
+    std::string             m_currentJsonFile;
 
     QPushButton            *m_pAutomaticModeButton;
     QSpinBox               *m_pUpdatePeriodSpinBox;
 
     QComboBox              *m_pKillComboBoxWidget;
-    QLabel                 *pKillComboBoxCaption;
 
     QTreeWidget            *m_pTreeWidget;
 
@@ -184,13 +215,10 @@ private:
     QPushButton            *m_pRestartJobButton;
 
     QPushButton            *m_pClearAllJobsButton;
-    //        QPushButton            *m_pKillAllJobsButton;
     QPushButton            *m_pRestartAllJobsButton;
     QPushButton            *m_pStartAllJobsButton;
 
     QPushButton            *m_pUpdateButton;
-
-    std::string             m_currentJsonFile;
 
     QMenuBar                *m_pMenuBar;
     QMenu                   *m_pContextMenu;
@@ -208,14 +236,10 @@ private:
     QAction                 *m_pRestartJobAction;
 
     QAction                 *m_pClearAllJobsAction;
-    //        QAction                 *m_pKillAllJobsAction;
     QAction                 *m_pRestartAllJobsAction;
     QAction                 *m_pStartAllJobsAction;
 
     QAction                 *m_pUpdateAction;
-
-protected:
-    void contextMenuEvent(QContextMenuEvent *event);
 };
 
 }
