@@ -143,6 +143,7 @@ DQMCanvas *DQMCanvasArea::createCanvas(DQMGuiMonitorElement *pMonitorElement)
 	if(!pCanvas)
 	{
 		pCanvas = new DQMCanvas(this->getMonitoring());
+		pCanvas->setAttribute(Qt::WA_DeleteOnClose);
 		this->addCanvas(pCanvas);
 		pCanvas->show();
 	}
@@ -210,6 +211,7 @@ DQMCanvas *DQMCanvasArea::draw(DQMGuiMonitorElement *pMonitorElement)
 	if(NULL == pCanvas)
 	{
 		pCanvas = new DQMCanvas(this->getMonitoring());
+		pCanvas->setAttribute(Qt::WA_DeleteOnClose);
 		this->addCanvas(pCanvas);
 		canvasCreated = true;
 	}
