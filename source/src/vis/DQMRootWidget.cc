@@ -161,7 +161,7 @@ void DQMRootWidget::draw(DQMGuiMonitorElement *pMonitorElement)
 	}
 
 	this->cd();
-	pObject->Draw();
+	pObject->Draw(drawOption.c_str());
 	gPad->Update();
 	this->postDraw();
 
