@@ -211,7 +211,7 @@ void DQMMonitorElementInfoWidget::fillInfos(DQMGuiMonitorElement *pGuiMonitorEle
 	m_pMonitorElementRunNumberLabel->setText(QString::number(pMonitorElement->getRunNumber()));
 
 	// full path
-	m_pMonitorElementFullPathLabel->setText(QString(pMonitorElement->getFullPath().c_str()));
+	m_pMonitorElementFullPathLabel->setText(QString(pMonitorElement->getPath().getPath().c_str()));
 
 	//
 	// Q tests

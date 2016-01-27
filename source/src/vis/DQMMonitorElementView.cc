@@ -257,7 +257,7 @@ void DQMMonitorElementNavigator::clear()
 void DQMMonitorElementNavigator::updateMonitorElement(DQMGuiMonitorElement *pMonitorElement)
 {
 	QString moduleName = pMonitorElement->getMonitorElement()->getModuleName().c_str();
-	QString fullPath = pMonitorElement->getMonitorElement()->getFullPath().c_str();
+	QString fullPath = pMonitorElement->getMonitorElement()->getPath().getPath().c_str();
 	QString name = pMonitorElement->getMonitorElement()->getName().c_str();
 	DQMQuality quality = pMonitorElement->getMonitorElement()->getQuality();
 
@@ -281,7 +281,7 @@ void DQMMonitorElementNavigator::updateMonitorElements(const DQMGuiMonitorElemen
 void DQMMonitorElementNavigator::removeMonitorElement(DQMGuiMonitorElement *pMonitorElement)
 {
 	QString moduleName = pMonitorElement->getMonitorElement()->getModuleName().c_str();
-	QString fullPath = pMonitorElement->getMonitorElement()->getFullPath().c_str();
+	QString fullPath = pMonitorElement->getMonitorElement()->getPath().getPath().c_str();
 	QString name = pMonitorElement->getMonitorElement()->getName().c_str();
 
 	if(this->dirExists(moduleName, fullPath))
