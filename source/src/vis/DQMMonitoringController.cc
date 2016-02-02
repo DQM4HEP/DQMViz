@@ -169,21 +169,7 @@ void DQMMonitoringController::removeClient(const std::string &collectorName)
 
 void DQMMonitoringController::createEmptyMonitorElements(const std::string &collectorName, const DQMMonitorElementInfoList &nameList)
 {
-	for(DQMMonitorElementInfoList::const_iterator iter = nameList.begin(), endIter = nameList.end() ;
-			endIter != iter ; ++iter)
-	{
-		// check for element non existence
-		if( NULL == this->getMonitoring()->getModel()->findMonitorElement(collectorName, iter->m_moduleName,
-				iter->m_monitorElementFullPath, iter->m_monitorElementName) )
-		{
-			// create it
-			DQMGuiMonitorElement *pMonitorElement = this->getMonitoring()->getModel()->createGuiMonitorElement(collectorName, iter->m_moduleName,
-					iter->m_monitorElementFullPath, iter->m_monitorElementName);
-
-			// add it to model. Note that this will automatically update the view
-			this->getMonitoring()->getModel()->updateMonitorElement(pMonitorElement);
-		}
-	}
+	this->getMonitoring()->getModel()->loadMonitorElementInfoList(collectorName, nameList);
 }
 
 //-------------------------------------------------------------------------------------------------

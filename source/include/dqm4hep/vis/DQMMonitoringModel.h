@@ -42,6 +42,7 @@ namespace dqm4hep
 class DQMMonitoring;
 class DQMGuiMonitorElementClient;
 class DQMGuiMonitorElement;
+class DQMMonitorElementInfoList;
 
 /** DQMMonitoringModel class
  */
@@ -101,6 +102,15 @@ public:
 	 *  Use updateMonitorElement(elt) to register it
 	 */
 	virtual DQMGuiMonitorElement *createGuiMonitorElement(DQMMonitorElement *pMonitorElement) const;
+
+	/**
+	 */
+	DQMGuiMonitorElement *getOrCreateGuiMonitorElement(const std::string &collectorName, const std::string &moduleName,
+			const std::string &fullPath, const std::string &name);
+
+	/**
+	 */
+	void loadMonitorElementInfoList(const std::string &collectorName, const DQMMonitorElementInfoList &nameList);
 
 	/** Factory method that create a wrapper around a monitor element in the Qt framework.
 	 *  The created monitor element is not registered in the model.

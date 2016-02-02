@@ -252,6 +252,96 @@ DQMGuiMonitorElement *DQMMonitoringModel::createGuiMonitorElement(DQMMonitorElem
 
 //-------------------------------------------------------------------------------------------------
 
+DQMGuiMonitorElement *DQMMonitoringModel::getOrCreateGuiMonitorElement(const std::string &collectorName, const std::string &moduleName,
+		const std::string &fullPath, const std::string &name)
+{
+	DQMPath path = fullPath;
+	DQMGuiMonitorElement *pMonitorElement = NULL;
+
+	for(DQMGuiMonitorElementList::const_iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;
+			endIter != iter ; ++iter)
+	{
+		const std::string &meCollectorName = (*iter)->getMonitorElement()->getCollectorName();
+		const DQMPath     &mePath = (*iter)->getMonitorElement()->getPath();
+		const std::string &meModuleName = (*iter)->getMonitorElement()->getModuleName();
+		const std::string &meName = (*iter)->getMonitorElement()->getName();
+
+		bool sameCollectorName = (collectorName == meCollectorName);
+		bool samePath =          (path          == mePath);
+		bool sameModuleName =    (moduleName    == meModuleName);
+		bool sameName =          (name          == meName);
+
+		if(sameCollectorName && samePath && sameModuleName && sameName)
+		{
+			pMonitorElement = (*iter);
+			break;
+		}
+	}
+
+	if(NULL == pMonitorElement)
+	{
+		pMonitorElement = this->createGuiMonitorElement(collectorName, moduleName, fullPath, name);
+
+		// register it
+		m_monitorElementList.push_back(pMonitorElement);
+
+		// notify view
+		this->getMonitoring()->getView()->getMonitorElementView()->addMonitorElement(pMonitorElement);
+	}
+
+	return pMonitorElement;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringModel::loadMonitorElementInfoList(const std::string &collectorName, const DQMMonitorElementInfoList &nameList)
+{
+	DQMGuiMonitorElementList addedMonitorElement;
+
+	for(DQMMonitorElementInfoList::const_iterator meIter = nameList.begin(), meEndIter = nameList.end() ;
+			meEndIter != meIter ; ++meIter)
+	{
+		DQMPath path = meIter->m_monitorElementFullPath;
+		DQMGuiMonitorElement *pMonitorElement = NULL;
+
+		for(DQMGuiMonitorElementList::const_iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;
+				endIter != iter ; ++iter)
+		{
+			const std::string &meCollectorName = (*iter)->getMonitorElement()->getCollectorName();
+			const DQMPath     &mePath = (*iter)->getMonitorElement()->getPath();
+			const std::string &meModuleName = (*iter)->getMonitorElement()->getModuleName();
+			const std::string &meName = (*iter)->getMonitorElement()->getName();
+
+			bool sameCollectorName = (collectorName == meCollectorName);
+			bool samePath =          (path          == mePath);
+			bool sameModuleName =    (meIter->m_moduleName    == meModuleName);
+			bool sameName =          (meIter->m_monitorElementName          == meName);
+
+			if(sameCollectorName && samePath && sameModuleName && sameName)
+			{
+				pMonitorElement = (*iter);
+				break;
+			}
+		}
+
+		if(NULL == pMonitorElement)
+		{
+			pMonitorElement = this->createGuiMonitorElement(collectorName, meIter->m_moduleName, meIter->m_monitorElementFullPath, meIter->m_monitorElementName);
+
+			// add it to tmp list
+			addedMonitorElement.push_back(pMonitorElement);
+
+			// notify view
+			this->getMonitoring()->getView()->getMonitorElementView()->addMonitorElement(pMonitorElement);
+		}
+	}
+
+	// register new content !
+	m_monitorElementList.insert(m_monitorElementList.end(), addedMonitorElement.begin(), addedMonitorElement.end());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 DQMGuiMonitorElement *DQMMonitoringModel::createGuiMonitorElement(const std::string &collectorName, const std::string &moduleName,
 			const std::string &fullPath, const std::string &name) const
 {
