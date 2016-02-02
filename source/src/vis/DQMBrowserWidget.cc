@@ -59,11 +59,8 @@ DQMBrowserWidget::DQMBrowserWidget(DQMMonitoring *pMonitoring) :
 {
 	setLayout(new QVBoxLayout());
 
-	QString dimDnsNode = "UNDEFINED";
-	const char *pDimDnsNode = getenv("DIM_DNS_NODE");
-
-	if(pDimDnsNode)
-		dimDnsNode = pDimDnsNode;
+	char *pDnsNode = getenv("DIM_DNS_NODE");
+	QString dimDnsNode = pDnsNode == NULL ? "UNKNOWN" : pDnsNode;
 
 	// monitor element collector
 	QGroupBox *pCollectorGroupBox = new QGroupBox("Monitor element collectors (DIM_DNS_NODE = " + dimDnsNode + ")");
@@ -132,12 +129,17 @@ DQMBrowserWidget::DQMBrowserWidget(DQMMonitoring *pMonitoring) :
 	layout()->addWidget(pBottomButtonAreaWidget);
 	QHBoxLayout *pBottomAreaLayout = new QHBoxLayout();
 	pBottomButtonAreaWidget->setLayout(pBottomAreaLayout);
+
 	m_pReplaceButton = new QPushButton("Replace");
 	m_pReplaceButton->setMaximumWidth(150);
+	m_pReplaceButton->setEnabled(false);
 	pBottomAreaLayout->addWidget(m_pReplaceButton);
+
 	m_pAppendButton = new QPushButton("Append");
 	m_pAppendButton->setMaximumWidth(150);
+	m_pAppendButton->setEnabled(false);
 	pBottomAreaLayout->addWidget(m_pAppendButton);
+
 	m_pCloseButton = new QPushButton("Close");
 	m_pCloseButton->setMaximumWidth(150);
 	pBottomAreaLayout->addWidget(m_pCloseButton);
@@ -163,7 +165,7 @@ DQMBrowserWidget::DQMBrowserWidget(DQMMonitoring *pMonitoring) :
 DQMBrowserWidget::~DQMBrowserWidget()
 {
 	if(m_pMonitorElementClient)
-		delete m_pMonitorElementClient;
+		m_pMonitorElementClient->deleteLater();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -227,8 +229,14 @@ void DQMBrowserWidget::handleCollectorSelection(int index)
 			m_pMonitorElementClient = 0;
 		}
 
+		m_pReplaceButton->setEnabled(false);
+		m_pAppendButton->setEnabled(false);
+
 		return;
 	}
+
+	m_pReplaceButton->setEnabled(true);
+	m_pAppendButton->setEnabled(true);
 
 	QString newCollectorName = m_pCollectorNameComboBox->itemText(index);
 
@@ -282,7 +290,7 @@ void DQMBrowserWidget::querySearch()
 	request.m_monitorElementName = m_pMonitorElementNameEdit->text().toStdString();
 	request.m_monitorElementType = static_cast<DQMMonitorElementType>(m_pMonitorElementTypeComboBox->currentIndex());
 
-	m_pMonitorElementClient->getMonitorElementClient()->sendMonitorElementListNameRequest(request);
+	m_pMonitorElementClient->getMonitorElementClient()->queryAvailableMonitorElements(request);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -373,18 +381,21 @@ void DQMBrowserWidget::selectAllElements()
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMBrowserWidget::buildMonitorElementRequest(DQMMonitorElementRequest &request) const
+void DQMBrowserWidget::buildMonitorElementInfoList(DQMMonitorElementInfoList &infoList) const
 {
 	for(unsigned int i=0 ; i<m_pSearchTreeWidget->topLevelItemCount() ; i++)
 	{
 		if(Qt::Checked == m_pSearchTreeWidget->topLevelItem(i)->checkState(0))
 		{
-			std::string moduleName = m_pSearchTreeWidget->topLevelItem(i)->text(0).toStdString();
-			std::string monitorElementName =
-					m_pSearchTreeWidget->topLevelItem(i)->text(1).toStdString() + "/" +
-					m_pSearchTreeWidget->topLevelItem(i)->text(2).toStdString();
+			DQMMonitorElementInfo info;
 
-			request.m_requestList.push_back(DQMMonitorElementRequest::ModuleMonitorElementPair(moduleName, monitorElementName));
+			info.m_moduleName = m_pSearchTreeWidget->topLevelItem(i)->text(0).toStdString();
+			info.m_monitorElementFullPath = m_pSearchTreeWidget->topLevelItem(i)->text(1).toStdString();
+			info.m_monitorElementName = m_pSearchTreeWidget->topLevelItem(i)->text(2).toStdString();
+			info.m_monitorElementType = m_pSearchTreeWidget->topLevelItem(i)->text(3).toStdString();
+			info.m_monitorElementDescription = m_pSearchTreeWidget->topLevelItem(i)->toolTip(0).toStdString();
+
+			infoList.push_back(info);
 		}
 	}
 }
@@ -393,31 +404,40 @@ void DQMBrowserWidget::buildMonitorElementRequest(DQMMonitorElementRequest &requ
 
 void DQMBrowserWidget::handleUpdateButtonClicked()
 {
-	DQMMonitorElementRequest request;
-	this->buildMonitorElementRequest(request);
+	DQMMonitorElementInfoList infoList;
+	this->buildMonitorElementInfoList(infoList);
 
 	std::string collectorName = this->getCollectorName().toStdString();
 
-	if(request.m_requestList.empty() || collectorName.empty())
+	if(infoList.empty() || collectorName.empty())
 		return;
 
-	this->getMonitoring()->getController()->sendMonitorElementRequest(collectorName, request);
+	// create the client instance (owned by the controller)
+	this->getMonitoring()->getController()->getClient(collectorName);
+
+	// create the list in view
+	this->getMonitoring()->getController()->createEmptyMonitorElements(collectorName, infoList);
 }
 
 //-------------------------------------------------------------------------------------------------
 
 void DQMBrowserWidget::handleReplaceButtonClicked()
 {
-	DQMMonitorElementRequest request;
-	this->buildMonitorElementRequest(request);
+	DQMMonitorElementInfoList infoList;
+	this->buildMonitorElementInfoList(infoList);
 
 	std::string collectorName = this->getCollectorName().toStdString();
 
-	if(request.m_requestList.empty() || collectorName.empty())
+	if(infoList.empty() || collectorName.empty())
 		return;
 
 	this->getMonitoring()->getController()->clearViewAndModel();
-	this->getMonitoring()->getController()->sendMonitorElementRequest(collectorName, request);
+
+	// create the client instance (owned by the controller)
+	this->getMonitoring()->getController()->getClient(collectorName);
+
+	// create the list in view
+	this->getMonitoring()->getController()->createEmptyMonitorElements(collectorName, infoList);
 }
 
 } 

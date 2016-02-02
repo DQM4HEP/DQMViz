@@ -39,7 +39,7 @@ namespace dqm4hep
 
 /** DQMGuiMonitorElementClient class
  */ 
-class DQMGuiMonitorElementClient : public QObject, public DQMMonitorElementClient::Handler
+class DQMGuiMonitorElementClient : public QObject, public DQMMonitorElementClientListener
 {
 	Q_OBJECT
 
@@ -71,23 +71,32 @@ signals:
 
 	/** Qt signal emitted when the client is connected
 	 */
-	void clientConnected();
+	void onMonitorElementClientConnect();
 
 	/** Qt signal emitted when the client is disconnected
 	 */
-	void clientDisconnected();
+	void onMonitorElementClientDisconnect();
+
+	/** Qt signal emitted when the collector server is started
+	 */
+	void onServerStartup();
+
+	/** Qt signal emitted when the collector server is shut down
+	 */
+	void onServerShutdown();
 
 private:
-
-	StatusCode receiveCollectorInfo(DQMMonitorElementClient *pClient, const DQMCollectorInfo &collectorInfo);
-	StatusCode receiveMonitorElementNameList(DQMMonitorElementClient *pClient, const DQMMonitorElementInfoList &infoList);
-	StatusCode receiveMonitorElementPublication(DQMMonitorElementClient *pClient, const DQMMonitorElementPublication &publication);
-	StatusCode handleClientConnection(DQMMonitorElementClient *pClient);
-	StatusCode handleClientDisconnection(DQMMonitorElementClient *pClient);
+	void onMonitorElementClientConnect(DQMMonitorElementClient */*pClient*/);
+	void onMonitorElementClientDisconnect(DQMMonitorElementClient */*pClient*/);
+	void onServerStartup(DQMMonitorElementClient */*pClient*/);
+	void onServerShutdown(DQMMonitorElementClient */*pClient*/);
+	void availableMonitorElementListReceived(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &/*infoList*/);
+	void monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMCollectorInfo &/*collectorInfo*/);
+	void monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMMonitorElementPublication &/*publication*/);
 
 private:
-
 	DQMMonitorElementClient           *m_pMonitorElementClient;
+	DQMMonitorElementPublication       m_publication;
 }; 
 
 } 

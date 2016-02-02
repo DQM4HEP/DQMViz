@@ -47,10 +47,138 @@
 namespace dqm4hep
 {
 
+class TreeWidgetItem : public QTreeWidgetItem
+{
+public:
+	/** Constructor
+	 */
+	TreeWidgetItem();
+
+	/** Constructor with parent item
+	 */
+	TreeWidgetItem(QTreeWidgetItem *pParent);
+
+	/** Constructor with tree widget
+	 */
+	TreeWidgetItem(QTreeWidget *pTreeWidget);
+
+	/** Set data for a target column with a given role
+	 */
+	void setData(int column, int role, const QVariant & value);
+
+	/** Set whether the element can be checked (subscribed)
+	 */
+	void setCheckable(bool checkable);
+
+private:
+	bool            m_checkable;
+};
+
+//-------------------------------------------------------------------------------------------------
+
+TreeWidgetItem::TreeWidgetItem() :
+		QTreeWidgetItem(),
+		m_checkable(true)
+{
+	/* nop */
+}
+
+//-------------------------------------------------------------------------------------------------
+
+TreeWidgetItem::TreeWidgetItem(QTreeWidgetItem *pParent) :
+		QTreeWidgetItem(pParent),
+		m_checkable(true)
+{
+	/* nop */
+}
+
+//-------------------------------------------------------------------------------------------------
+
+TreeWidgetItem::TreeWidgetItem(QTreeWidget *pTreeWidget) :
+		QTreeWidgetItem(pTreeWidget),
+		m_checkable(true)
+{
+	/* nop */
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void TreeWidgetItem::setData(int column, int role, const QVariant & value)
+{
+	if(0 == column && role == Qt::CheckStateRole)
+	{
+		Qt::CheckState oldState = static_cast<Qt::CheckState>(this->data(column, role).toInt());
+		Qt::CheckState newState = static_cast<Qt::CheckState>(value.toInt());
+
+		if(oldState == newState)
+		{
+			QTreeWidgetItem::setData(column, role, value);
+			return;
+		}
+
+		DQMMonitorElementNavigator *pNavigator = qobject_cast<DQMMonitorElementNavigator *>(this->treeWidget());
+
+		if(!pNavigator)
+		{
+			QTreeWidgetItem::setData(column, role, value);
+			return;
+		}
+
+		if(!pNavigator->isMonitorElementItem(this))
+		{
+			QTreeWidgetItem::setData(column, role, value);
+			return;
+		}
+
+		QString collectorName(pNavigator->getCollectorName());
+		QString moduleName(pNavigator->getModuleName(this));
+		QString fullPathName(pNavigator->getFullPathName(this));
+		QString monitorElementName(this->text(0));
+		std::string fullName = (DQMPath(fullPathName.toStdString()) + monitorElementName.toStdString()).getPath();
+
+
+		DQMMonitorElementRequest request;
+		request.push_back(DQMMonitorElementRequest::value_type(moduleName.toStdString(), fullName));
+
+		if(Qt::Checked == newState)
+		{
+			if(m_checkable)
+			{
+				std::cout << "Subscribing to " << fullName << std::endl;
+				pNavigator->getMonitoring()->getController()->subscribe(collectorName.toStdString(), request);
+			}
+			else
+			{
+				pNavigator->getMonitoring()->getController()->log(ERROR, "Can't subscribe to monitor element to " + fullName + " (disabled)");
+				return;
+			}
+		}
+		else
+		{
+			std::cout << "Un-subscribing to " << fullName << std::endl;
+			pNavigator->getMonitoring()->getController()->unsubscribe(collectorName.toStdString(), request);
+		}
+	}
+
+	QTreeWidgetItem::setData(column, role, value);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void TreeWidgetItem::setCheckable(bool checkable)
+{
+	std::cout << "Item " << this->text(0).toStdString() << " set checkable to " << checkable << std::endl;
+	m_checkable = checkable;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+
 DQMMonitorElementNavigator::DQMMonitorElementNavigator(const QString &collectorName, DQMMonitoring *pMonitoring, QWidget *pParent) :
 		m_collectorName(collectorName),
 		QTreeWidget(pParent),
-		m_pMonitoring(pMonitoring)
+		m_pMonitoring(pMonitoring),
+		m_subscriptionEnabled(true)
 {
 	setHeaderLabel("Monitor elements");
 
@@ -116,7 +244,7 @@ QTreeWidgetItem *DQMMonitorElementNavigator::mkdir(const QString &moduleName)
 			return topLevelItem(i);
 	}
 
-	QTreeWidgetItem *pModuleDirectoryItem = new QTreeWidgetItem(this);
+	QTreeWidgetItem *pModuleDirectoryItem = new TreeWidgetItem(this);
 
 	QCommonStyle style;
 	pModuleDirectoryItem->setText(0, moduleName);
@@ -439,10 +567,30 @@ QList<QTreeWidgetItem*> DQMMonitorElementNavigator::getAllMonitorElementItems(co
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitorElementNavigator::enableSubscription(bool enable)
+{
+	if(m_subscriptionEnabled == enable)
+		return;
+
+	m_subscriptionEnabled = enable;
+
+	for(int i=0 ; i<topLevelItemCount() ; i++)
+	{
+		QList<QTreeWidgetItem*> monitorElementItems;
+		this->getRecursiveMonitorElements(this->topLevelItem(i), monitorElementItems, false);
+
+		for(int j=0 ; j<monitorElementItems.size() ; j++)
+		{
+			TreeWidgetItem *pMonitorElementItem = dynamic_cast<TreeWidgetItem *>(monitorElementItems.at(j));
+			pMonitorElementItem->setCheckable( m_subscriptionEnabled );
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMMonitorElementNavigator::checkAllMonitorElements()
 {
-	std::cout << "Check all !!" << std::endl;
-
 	for(int i=0 ; i<topLevelItemCount() ; i++)
 	{
 		QTreeWidgetItem *pModuleItem = topLevelItem(i);
@@ -547,7 +695,7 @@ QTreeWidgetItem *DQMMonitorElementNavigator::mkdir(QTreeWidgetItem *pTreeItem, c
 			return pTreeItem->child(i);
 	}
 
-	QTreeWidgetItem *pDirectoryItem = new QTreeWidgetItem(pTreeItem);
+	QTreeWidgetItem *pDirectoryItem = new TreeWidgetItem(pTreeItem);
 
 	QCommonStyle style;
 	pDirectoryItem->setText(0, dirName);
@@ -571,11 +719,11 @@ QTreeWidgetItem *DQMMonitorElementNavigator::addMonitorElement(QTreeWidgetItem *
 			return pTreeItem->child(i);
 	}
 
-	QTreeWidgetItem *pMonitorElementItem = new QTreeWidgetItem(pTreeItem);
-
+	TreeWidgetItem *pMonitorElementItem = new TreeWidgetItem(pTreeItem);
 	pMonitorElementItem->setText(0, name);
 	pMonitorElementItem->setData(0, Qt::UserRole, static_cast<int>(MONITOR_ELEMENT_ITEM));
 	pMonitorElementItem->setCheckState(0, Qt::Unchecked);
+	pMonitorElementItem->setCheckable( m_subscriptionEnabled );
 	pTreeItem->addChild(pMonitorElementItem);
 
 	return pMonitorElementItem;
@@ -645,7 +793,7 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
     QAction *pExportSelectedAction = pExportToRootMenu->addAction("Export selected");
     contextMenu.addSeparator();
 
-    QAction *pUpdateAction = contextMenu.addAction("Update", this->getMonitoring()->getController(), SLOT(sendMonitorElementRequests()));
+    QAction *pUpdateAction = contextMenu.addAction("Update", this, SLOT(queryUpdate()));
     contextMenu.addSeparator();
 
     QMenu *pDrawInTabMenu = contextMenu.addMenu("Draw in ...");
@@ -686,7 +834,7 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
     QAction *pUncheckSelectedAction = contextMenu.addAction("Un-check selected", this, SLOT(uncheckSelectedMonitorElements()));
 
     // process context menu
-    QAction *pSelectedAction = contextMenu.exec(globalPos);
+    contextMenu.exec(globalPos);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -838,34 +986,26 @@ void DQMMonitorElementNavigator::keyPressEvent( QKeyEvent * pKeyEvent )
 		{
 			QTreeWidgetItem *pTreeWidgetItem = *iter;
 
-//			if(pTreeWidgetItem->checkState(0) == Qt::Checked)
-//			{
-//				// TODO is it easier to handle this for user ?
-////				pTreeWidgetItem->setCheckState(0, Qt::Unchecked);
-//			}
-//			else
-//			{
-				QString collectorName(this->getCollectorName());
-				QString moduleName(this->getModuleName(pTreeWidgetItem));
-				QString fullPathName(this->getFullPathName(pTreeWidgetItem));
-				QString monitorElementName(pTreeWidgetItem->text(0));
+			QString collectorName(this->getCollectorName());
+			QString moduleName(this->getModuleName(pTreeWidgetItem));
+			QString fullPathName(this->getFullPathName(pTreeWidgetItem));
+			QString monitorElementName(pTreeWidgetItem->text(0));
 
-				DQMGuiMonitorElement *pMonitorElement =
-						this->getMonitoring()->getModel()->findMonitorElement(
-								collectorName.toStdString(),
-								moduleName.toStdString(),
-								fullPathName.toStdString(),
-								monitorElementName.toStdString());
+			DQMGuiMonitorElement *pMonitorElement =
+					this->getMonitoring()->getModel()->findMonitorElement(
+							collectorName.toStdString(),
+							moduleName.toStdString(),
+							fullPathName.toStdString(),
+							monitorElementName.toStdString());
 
-				if(!pMonitorElement)
-					continue;
+			if(!pMonitorElement)
+				continue;
 
-				pCanvasView->drawInCurrentArea(pMonitorElement);
-				pTreeWidgetItem->setCheckState(0, Qt::Checked);
+			pCanvasView->drawInCurrentArea(pMonitorElement);
+			pTreeWidgetItem->setCheckState(0, Qt::Checked);
 
-				this->setFocus(Qt::OtherFocusReason);
-//			}
-				++iter;
+			this->setFocus(Qt::OtherFocusReason);
+			++iter;
 		}
     }
     else
@@ -1016,6 +1156,41 @@ void DQMMonitorElementNavigator::startDrag()
 }
 
 //-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementNavigator::queryUpdate()
+{
+	QSet<QTreeWidgetItem*> selectedItems = QSet<QTreeWidgetItem*>::fromList(this->getSelectedMonitorElementItems());
+	DQMGuiMonitorElementList monitorElementList;
+
+	QString collectorName(this->getCollectorName());
+
+	for(QSet<QTreeWidgetItem*>::iterator iter = selectedItems.begin(), endIter = selectedItems.end() ;
+			endIter != iter ; ++iter)
+	{
+		QTreeWidgetItem *pTreeWidgetItem = *iter;
+
+
+		QString moduleName(this->getModuleName(pTreeWidgetItem));
+		QString fullPathName(this->getFullPathName(pTreeWidgetItem));
+		QString monitorElementName(pTreeWidgetItem->text(0));
+
+		DQMGuiMonitorElement *pMonitorElement =
+				this->getMonitoring()->getModel()->findMonitorElement(
+						collectorName.toStdString(),
+						moduleName.toStdString(),
+						fullPathName.toStdString(),
+						monitorElementName.toStdString());
+
+		if(NULL == pMonitorElement)
+			continue;
+
+		monitorElementList.push_back(pMonitorElement);
+	}
+
+	this->getMonitoring()->getController()->queryUpdate(monitorElementList);
+}
+
+//-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
 DQMMonitorElementView::DQMMonitorElementView(DQMMonitoring *pMonitoring) :
@@ -1088,6 +1263,36 @@ QList<QTreeWidgetItem*> DQMMonitorElementView::getCheckedMonitorElements(const s
 		return checkedMonitorElements;
 
 	return pNavigator->getCheckedMonitorElements();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementView::uncheckAllMonitorElements(const std::string &collectorName)
+{
+	for(int i=0 ; i<m_pToolBox->count() ; i++)
+	{
+		if(m_pToolBox->itemText(i).toStdString() == collectorName)
+		{
+			DQMMonitorElementNavigator *pNavigator = qobject_cast<DQMMonitorElementNavigator*>(m_pToolBox->widget(i));
+			pNavigator->uncheckAllMonitorElements();
+			break;
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementView::enableSubscription(const std::string &collectorName, bool enable)
+{
+	for(int i=0 ; i<m_pToolBox->count() ; i++)
+	{
+		if(m_pToolBox->itemText(i).toStdString() == collectorName)
+		{
+			DQMMonitorElementNavigator *pNavigator = qobject_cast<DQMMonitorElementNavigator*>(m_pToolBox->widget(i));
+			pNavigator->enableSubscription(enable);
+			break;
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------------

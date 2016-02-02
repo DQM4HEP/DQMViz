@@ -82,9 +82,9 @@ public slots:
 	void updateCollectorList();
 
 private:
-	/** Build the monitor element request to send to the collector server
+	/** Build the monitor element info list of the current selection
 	 */
-	void buildMonitorElementRequest(DQMMonitorElementRequest &request) const;
+	void buildMonitorElementInfoList(DQMMonitorElementInfoList &infoList) const;
 
 private slots:
 	/**
@@ -130,21 +130,6 @@ private slots:
 	void handleReplaceButtonClicked();
 
 signals:
-	/** Signal called after receiving a publication from the collector server
-	 *  in order to replace the monitor element list on top of the current
-	 */
-	void replaceRequested(const DQMMonitorElementPublication &);
-
-	/** Signal called after receiving a publication from the collector server
-	 *  in order to append it to the current monitor element list
-	 */
-	void appendRequested(const DQMMonitorElementPublication &);
-
-	/** Signal emitted when the server responds to the query search by
-	 * sending the monitor element list name.
-	 */
-	void monitorElementListNameReceived(const DQMMonitorElementInfoList &);
-
 	/** Key pressed event emitted in the tree widget
 	 */
 	void keyPressEvent(QKeyEvent *);

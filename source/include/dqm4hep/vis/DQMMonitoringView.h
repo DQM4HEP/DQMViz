@@ -43,7 +43,6 @@ namespace dqm4hep
 class DQMMonitoring;
 class DQMMonitorElementView;
 class DQMCanvasView;
-class DQMAutomaticQueryWidget;
 
 /** DQMMonitoringView class
  */ 
@@ -58,7 +57,7 @@ public:
 
 	/** Destructor
 	 */
-	virtual ~DQMMonitoringView();
+	~DQMMonitoringView();
 
 	/** Get the monitoring instance
 	 */
@@ -75,7 +74,7 @@ public:
 	/** Build the view.
 	 *  Should be called once
 	 */
-	virtual void buildView();
+	void buildView();
 
 	/**
 	 */
@@ -104,15 +103,20 @@ public:
 protected:
 	/**
 	 */
-	virtual void buildMenus();
+	void buildMenus();
 
 	/**
 	 */
-	virtual void buildCentralView();
+	void buildCentralView();
 
 	/**
 	 */
-	virtual void buildStatusBar();
+	void buildStatusBar();
+
+private slots:
+	/**
+	 */
+	void handleAutoUpdateButtonClicked();
 
 protected:
 
@@ -120,9 +124,8 @@ protected:
 
 	DQMMonitoring              *m_pMonitoring;            ///< The monitoring instance.
 	DQMCanvasView              *m_pCanvasView;            ///< The canvas view to display monitor elements.
-	DQMAutomaticQueryWidget    *m_pAutomaticQueryWidget;
-	DQMMonitorElementView      *m_pMonitorElementView;   ///< The monitor element view to display the element hierarchy.
-	QMainWindow                *m_pMainWindow;             ///< The main window containing the whole view.
+	DQMMonitorElementView      *m_pMonitorElementView;    ///< The monitor element view to display the element hierarchy.
+	QMainWindow                *m_pMainWindow;            ///< The main window containing the whole view.
 };
 
 } 

@@ -30,7 +30,6 @@
 #include "dqm4hep/vis/DQMMonitoringController.h"
 #include "dqm4hep/vis/DQMMonitoringModel.h"
 #include "dqm4hep/vis/DQMMonitoring.h"
-#include "dqm4hep/vis/DQMAutomaticQueryWidget.h"
 #include "dqm4hep/vis/DQMMonitorElementView.h"
 #include "dqm4hep/vis/DQMCanvasView.h"
 #include "dqm4hep/DQMMessaging.h"
@@ -50,6 +49,8 @@
 #include <QSplitter>
 #include <QMenuBar>
 #include <QFileDialog>
+#include <QGroupBox>
+#include <QPushButton>
 #include <QCloseEvent>
 
 namespace dqm4hep
@@ -126,11 +127,6 @@ TiXmlElement *DQMMonitoringView::toXml() const
 	if(pCanvasViewElement)
 		pXmlElement->LinkEndChild(pCanvasViewElement);
 
-	TiXmlElement *pAutomaticQueryElement = m_pAutomaticQueryWidget->toXml();
-
-	if(pAutomaticQueryElement)
-		pXmlElement->LinkEndChild(pAutomaticQueryElement);
-
 	return pXmlElement;
 }
 
@@ -154,11 +150,6 @@ void DQMMonitoringView::fromXml(TiXmlElement *const pXmlElement)
 
     if(pMeViewElement)
     	m_pMonitorElementView->fromXml(pMeViewElement);
-
-    TiXmlElement *pAutomaticQueryElement = elementHandle.FirstChild("automaticQuery").Element();
-
-    if(pAutomaticQueryElement)
-    	m_pAutomaticQueryWidget->fromXml(pAutomaticQueryElement);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -239,40 +230,53 @@ void DQMMonitoringView::buildCentralView()
 	QWidget *pLeftViewWidget = new QWidget();
 	pLeftViewWidget->setLayout(new QVBoxLayout());
 
-	m_pAutomaticQueryWidget = new DQMAutomaticQueryWidget();
-	pLeftViewWidget->layout()->addWidget(m_pAutomaticQueryWidget);
-	m_pAutomaticQueryWidget->setMaximumHeight(100);
 
+    // update buttons
+	QWidget *pUpdateButtonAreaWidget = new QWidget();
+	pUpdateButtonAreaWidget->setLayout(new QHBoxLayout());
+
+	QPushButton *pAutoUpdateButton = new QPushButton("Start update");
+	pUpdateButtonAreaWidget->layout()->addWidget(pAutoUpdateButton);
+
+	QPushButton *pUpdateButton = new QPushButton("Update");
+	pUpdateButtonAreaWidget->layout()->addWidget(pUpdateButton);
+
+	pUpdateButtonAreaWidget->setMaximumHeight(50);
+	pLeftViewWidget->layout()->addWidget(pUpdateButtonAreaWidget);
+
+
+	// monitor element contents view
 	QGroupBox *pContentGroupBox = new QGroupBox("Contents");
 	pContentGroupBox->setLayout(new QVBoxLayout());
 	pLeftViewWidget->layout()->addWidget(pContentGroupBox);
 
 	m_pMonitorElementView = new DQMMonitorElementView(m_pMonitoring);
+	m_pMonitorElementView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	pContentGroupBox->layout()->addWidget(m_pMonitorElementView);
 
-	QWidget *pButtonAreaWidget = new QWidget();
-	pButtonAreaWidget->setLayout(new QHBoxLayout());
 
-	QPushButton *pUpdateButton = new QPushButton("Update");
-	pButtonAreaWidget->layout()->addWidget(pUpdateButton);
+	// clear and browse buttons
+	QWidget *pClearBrowseButtonAreaWidget = new QWidget();
+	pClearBrowseButtonAreaWidget->setLayout(new QHBoxLayout());
 
 	QPushButton *pClearButton = new QPushButton("Clear");
-	pButtonAreaWidget->layout()->addWidget(pClearButton);
-    pButtonAreaWidget->setMaximumHeight(50);
+	pClearBrowseButtonAreaWidget->layout()->addWidget(pClearButton);
 
 	QPushButton *pBrowseButton = new QPushButton("Browse");
-	pButtonAreaWidget->layout()->addWidget(pBrowseButton);
+	pClearBrowseButtonAreaWidget->layout()->addWidget(pBrowseButton);
 
-    pLeftViewWidget->layout()->addWidget(pButtonAreaWidget);
+	pClearBrowseButtonAreaWidget->setMaximumHeight(50);
+    pLeftViewWidget->layout()->addWidget(pClearBrowseButtonAreaWidget);
+
 
 	pMainWidget->addWidget(pLeftViewWidget);
 
 	m_pCanvasView = new DQMCanvasView(m_pMonitoring);
 	pMainWidget->addWidget(m_pCanvasView);
 
-	connect(m_pAutomaticQueryWidget, SIGNAL(timeout()), this->getMonitoring()->getController(), SLOT(sendMonitorElementRequests()));
-	connect(pUpdateButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(sendMonitorElementRequests()));
-	connect(pClearButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(clearViewAndModel()));
+	connect(pAutoUpdateButton, SIGNAL(clicked()), this, SLOT(handleAutoUpdateButtonClicked()));
+	connect(pUpdateButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(querySubscribedMonitorElements()));
+	connect(pClearButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(clearMonitoring()));
 	connect(pBrowseButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(openBrowser()));
 }
 
@@ -303,9 +307,30 @@ void DQMMonitoringView::hideView()
 
 void DQMMonitoringView::clear()
 {
-	m_pAutomaticQueryWidget->stop();
 	m_pMonitorElementView->clear();
 	m_pCanvasView->clear();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringView::handleAutoUpdateButtonClicked()
+{
+	QPushButton *pButton = qobject_cast<QPushButton *>(sender());
+
+	if(!pButton)
+		return;
+
+	// update view
+	if(this->getMonitoring()->getController()->getUpdateMode())
+	{
+		pButton->setText("Start update");
+		this->getMonitoring()->getController()->setUpdateMode(false);
+	}
+	else
+	{
+		pButton->setText("Stop update");
+		this->getMonitoring()->getController()->setUpdateMode(true);
+	}
 }
 
 } 

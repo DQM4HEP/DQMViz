@@ -167,6 +167,10 @@ public:
 	 */
 	QList<QTreeWidgetItem*> getAllMonitorElementItems(const QString &moduleName) const;
 
+	/** Enable/Disable subscription for each element
+	 */
+	void enableSubscription(bool enable = true);
+
 public slots:
 	/** Check all monitor element items
 	 */
@@ -239,11 +243,16 @@ private slots:
 	 */
 	void startDrag();
 
+	/**
+	 */
+	void queryUpdate();
+
 private:
 
 	DQMMonitoring          *m_pMonitoring;
 	QString                 m_collectorName;
 	QList<QTreeWidgetItem*> m_dragItemList;
+	bool                    m_subscriptionEnabled;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -279,6 +288,14 @@ public:
 	/**
 	 */
 	QList<QTreeWidgetItem*> getCheckedMonitorElements(const std::string &collectorName) const;
+
+	/**
+	 */
+	void uncheckAllMonitorElements(const std::string &collectorName);
+
+	/** Enable subscription of monitor elements
+	 */
+	void enableSubscription(const std::string &collectorName, bool enable = true);
 
 	/** Export settings to xml element
 	 */

@@ -64,7 +64,8 @@ namespace dqm4hep
 {
 
 DQMMonitoringController::DQMMonitoringController(DQMMonitoring *pMonitoring) :
-	m_pMonitoring(pMonitoring)
+	m_pMonitoring(pMonitoring),
+	m_updateMode(false)
 {
 	m_pMonitoring->setController(this);
 
@@ -78,7 +79,7 @@ DQMMonitoringController::DQMMonitoringController(DQMMonitoring *pMonitoring) :
 
 DQMMonitoringController::~DQMMonitoringController()
 {
-	/* nop */
+	clear();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -107,6 +108,7 @@ void DQMMonitoringController::log(LogLevel level, const std::string &message)
 
 DQMGuiMonitorElementClient *DQMMonitoringController::createClient(const std::string &collectorName)
 {
+	std::cout << "Creating collector client for " << collectorName << std::endl;
 	return new DQMGuiMonitorElementClient(collectorName);
 }
 
@@ -120,12 +122,33 @@ DQMGuiMonitorElementClient *DQMMonitoringController::getClient(const std::string
 		return findIter->second;
 
 	DQMGuiMonitorElementClient *pNewClient = this->createClient(collectorName);
+
+	// to receive monitor elements
 	connect(pNewClient, SIGNAL(monitorElementPublicationReceived(const DQMMonitorElementPublication &)),
-			this, SLOT(handleMonitorElementPublicationReception(const DQMMonitorElementPublication &)));
+			this, SLOT(receiveMonitorElementPublication(const DQMMonitorElementPublication &)));
+
+	// to handle server startup
+	connect(pNewClient, SIGNAL(onServerStartup()), this, SLOT(handleServerStartup()));
+
+	// to handle server shutdown
+	connect(pNewClient, SIGNAL(onServerShutdown()), this, SLOT(handleServerShutdown()));
 
 	m_clientMap.insert(DQMGuiMonitorElementClientMap::value_type(collectorName, pNewClient));
 
+	pNewClient->getMonitorElementClient()->setUpdateMode(m_updateMode);
 	return pNewClient;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+DQMGuiMonitorElementClient *DQMMonitoringController::findClient(const std::string &collectorName)
+{
+	DQMGuiMonitorElementClientMap::iterator findIter = m_clientMap.find(collectorName);
+
+	if(m_clientMap.end() != findIter)
+		return findIter->second;
+
+	return NULL;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -144,68 +167,275 @@ void DQMMonitoringController::removeClient(const std::string &collectorName)
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitoringController::queryUpdate(DQMGuiMonitorElement *pMonitorElement)
+void DQMMonitoringController::createEmptyMonitorElements(const std::string &collectorName, const DQMMonitorElementInfoList &nameList)
 {
-	DQMGuiMonitorElementClient *pGuiClient = this->getClient(pMonitorElement->getMonitorElement()->getCollectorName());
+	for(DQMMonitorElementInfoList::const_iterator iter = nameList.begin(), endIter = nameList.end() ;
+			endIter != iter ; ++iter)
+	{
+		// check for element non existence
+		if( NULL == this->getMonitoring()->getModel()->findMonitorElement(collectorName, iter->m_moduleName,
+				iter->m_monitorElementFullPath, iter->m_monitorElementName) )
+		{
+			// create it
+			DQMGuiMonitorElement *pMonitorElement = this->getMonitoring()->getModel()->createGuiMonitorElement(collectorName, iter->m_moduleName,
+					iter->m_monitorElementFullPath, iter->m_monitorElementName);
+
+			// add it to model. Note that this will automatically update the view
+			this->getMonitoring()->getModel()->updateMonitorElement(pMonitorElement);
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::subscribe(const std::string &collectorName, const DQMMonitorElementRequest &request)
+{
+	if(collectorName.empty() || request.empty())
+		return;
+
+	DQMGuiMonitorElementClient *pGuiClient = this->getClient(collectorName);
 	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
 
 	if(!pClient->isConnectedToService())
 		pClient->connectToService();
 
+	StatusCode statusCode = pClient->subscribe(request);
+
+	if(STATUS_CODE_SUCCESS != statusCode)
+		this->log(ERROR, "Couldn't send subscription to collector " + collectorName + " : " + statusCodeToString(statusCode));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::unsubscribe(const std::string &collectorName, const DQMMonitorElementRequest &request)
+{
+	if(collectorName.empty() || request.empty())
+		return;
+
+	DQMGuiMonitorElementClient *pGuiClient = this->getClient(collectorName);
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+
+	if(!pClient->isConnectedToService())
+		pClient->connectToService();
+
+	StatusCode statusCode = pClient->unsubscribe(request);
+
+	if(STATUS_CODE_SUCCESS != statusCode)
+		this->log(ERROR, "Couldn't send un-subscription to collector " + collectorName + " : " + statusCodeToString(statusCode));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::querySubscribedMonitorElements()
+{
+	int nCollectorErrors = 0;
+
+	for(DQMGuiMonitorElementClientMap::iterator iter = m_clientMap.begin(), endIter = m_clientMap.end() ;
+			endIter != iter ; ++iter)
+	{
+		StatusCode statusCode = iter->second->getMonitorElementClient()->querySubscribedMonitorElements();
+
+		if(STATUS_CODE_SUCCESS != statusCode)
+			nCollectorErrors++;
+	}
+
+	if(nCollectorErrors != 0)
+		this->log(ERROR, "Couldn't send update request to collectors (" + DQM4HEP::typeToString(nCollectorErrors) + " errors)");
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::querySubscribedMonitorElements(const std::string &collectorName)
+{
+	if(collectorName.empty())
+		return;
+
+	DQMGuiMonitorElementClient *pGuiClient = this->getClient(collectorName);
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+
+	if(!pClient->isConnectedToService())
+		pClient->connectToService();
+
+	StatusCode statusCode = pClient->querySubscribedMonitorElements();
+
+	if(STATUS_CODE_SUCCESS != statusCode)
+		this->log(ERROR, "Couldn't send un-subscription request to collector " + collectorName + " : " + statusCodeToString(statusCode));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::querySubscribedMonitorElements(const std::string &collectorName, const DQMMonitorElementRequest &request)
+{
+	if(collectorName.empty())
+		return;
+
+	DQMGuiMonitorElementClient *pGuiClient = this->getClient(collectorName);
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+
+	if(!pClient->isConnectedToService())
+		pClient->connectToService();
+
+	StatusCode statusCode = pClient->querySubscribedMonitorElements(request);
+
+	if(STATUS_CODE_SUCCESS != statusCode)
+		this->log(ERROR, "Couldn't send un-subscription request to collector " + collectorName + " : " + statusCodeToString(statusCode));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::unsubscribe(const std::string &collectorName)
+{
+	if(collectorName.empty())
+		return;
+
+	DQMGuiMonitorElementClient *pGuiClient = this->getClient(collectorName);
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+
+	if(!pClient->isConnectedToService())
+		pClient->connectToService();
+
+	// empty subscription request to clear subscriptions
+	DQMMonitorElementRequest request;
+	StatusCode statusCode = pClient->replaceSubscription(request);
+
+	if(STATUS_CODE_SUCCESS != statusCode)
+		this->log(ERROR, "Couldn't send un-subscription request to collector " + collectorName + " : " + statusCodeToString(statusCode));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::setUpdateMode(bool updateMode)
+{
+	for(DQMGuiMonitorElementClientMap::iterator iter = m_clientMap.begin(), endIter = m_clientMap.end() ;
+			endIter != iter ; ++iter)
+		iter->second->getMonitorElementClient()->setUpdateMode(updateMode);
+
+	m_updateMode = updateMode;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+bool DQMMonitoringController::getUpdateMode() const
+{
+	return m_updateMode;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::queryUpdate(DQMGuiMonitorElement *pMonitorElement)
+{
+	std::string fullName = (pMonitorElement->getMonitorElement()->getPath() + pMonitorElement->getMonitorElement()->getName()).getPath();
 	std::string moduleName = pMonitorElement->getMonitorElement()->getModuleName();
-	std::string name = pMonitorElement->getMonitorElement()->getName();
-	const DQMPath &path = pMonitorElement->getMonitorElement()->getPath();
-	std::string fullPathName = (path + name).getPath();
+	std::string collectorName = pMonitorElement->getMonitorElement()->getCollectorName();
 
 	DQMMonitorElementRequest request;
-	request.m_requestList.push_back(DQMMonitorElementRequest::ModuleMonitorElementPair(moduleName, fullPathName));
+	request.push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
 
-	pClient->sendMonitorElementPublicationRequest(request);
+	this->querySubscribedMonitorElements(collectorName, request);
 }
 
 //-------------------------------------------------------------------------------------------------
 
 void DQMMonitoringController::queryUpdate(const DQMGuiMonitorElementList &monitorElementList)
 {
-	std::map<DQMMonitorElementClient*, DQMMonitorElementRequest> clientToRequestMap;
+	DQMMonitorElementRequest request;
+	std::map<std::string, DQMMonitorElementRequest> requestMap;
 
 	for(DQMGuiMonitorElementList::const_iterator iter = monitorElementList.begin(), endIter = monitorElementList.end() ;
 			endIter != iter ; ++iter)
 	{
-		DQMGuiMonitorElement *pMonitorElement = *iter;
+		std::string fullName = ((*iter)->getMonitorElement()->getPath() + (*iter)->getMonitorElement()->getName()).getPath();
+		std::string moduleName = (*iter)->getMonitorElement()->getModuleName();
+		std::string collectorName = (*iter)->getMonitorElement()->getCollectorName();
 
-		DQMGuiMonitorElementClient *pGuiClient = this->getClient(pMonitorElement->getMonitorElement()->getCollectorName());
-		DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
-
-		std::string moduleName = pMonitorElement->getMonitorElement()->getModuleName();
-		std::string name = pMonitorElement->getMonitorElement()->getName();
-		const DQMPath &path = pMonitorElement->getMonitorElement()->getPath();
-		std::string fullPathName = (path + name).getPath();
-
-		clientToRequestMap[pClient].m_requestList.push_back(DQMMonitorElementRequest::ModuleMonitorElementPair(moduleName, fullPathName));
+		requestMap[collectorName].push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
 	}
 
-	for(std::map<DQMMonitorElementClient*, DQMMonitorElementRequest>::iterator iter = clientToRequestMap.begin(),
-			endIter = clientToRequestMap.end() ; endIter != iter ; ++iter)
+	for(std::map<std::string, DQMMonitorElementRequest>::iterator iter = requestMap.begin(), endIter = requestMap.end() ;
+			endIter != iter ; ++iter)
 	{
-		if(!iter->first->isConnectedToService())
-			iter->first->connectToService();
-
-		iter->first->sendMonitorElementPublicationRequest(iter->second);
+		this->querySubscribedMonitorElements(iter->first, iter->second);
 	}
 }
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitoringController::clear()
+void DQMMonitoringController::receiveMonitorElementPublication(const DQMMonitorElementPublication &publication)
 {
-	for(DQMGuiMonitorElementClientMap::iterator iter = m_clientMap.begin(), endIter = m_clientMap.end() ;
+	std::cout << "Received publication of " << publication.size() << " modules" << std::endl;
+	for(DQMMonitorElementPublication::const_iterator iter = publication.begin(), endIter = publication.end() ;
 			endIter != iter ; ++iter)
 	{
-		iter->second->deleteLater();
+		std::string moduleName = iter->first;
+
+		for(int i=0 ; i<iter->second.size() ; i++)
+			this->getMonitoring()->getModel()->updateMonitorElement(iter->second.at(i));
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::handleServerStartup()
+{
+	DQMGuiMonitorElementClient *pGuiClient = qobject_cast<DQMGuiMonitorElementClient *>(sender());
+
+	if(!pGuiClient)
+		return;
+
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+	std::string collectorName = pClient->getCollectorName();
+
+	std::cout << collectorName << " server startup !" << std::endl;
+
+	// get all subscribed elements
+	DQMMonitorElementView *pMeView = this->getMonitoring()->getView()->getMonitorElementView();
+	pMeView->enableSubscription(collectorName, true);
+	QList<QTreeWidgetItem *> items = pMeView->getCheckedMonitorElements(collectorName);
+
+	DQMMonitorElementRequest request;
+
+	for(int j=0 ; j<items.size() ; j++)
+	{
+		DQMMonitorElementNavigator *pNavigator = qobject_cast<DQMMonitorElementNavigator *>(items.at(j)->treeWidget());
+
+		std::string moduleName = pNavigator->getModuleName(items.at(j)).toStdString();
+		std::string path = pNavigator->getFullPathName(items.at(j)).toStdString();
+		std::string name = items.at(j)->text(0).toStdString();
+		std::string fullName = (DQMPath(path) + name).getPath();
+
+		request.push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
 	}
 
-	m_clientMap.clear();
+	if(!pClient->isConnectedToService())
+		pClient->connectToService();
+
+	pClient->replaceSubscription(request);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::handleServerShutdown()
+{
+	DQMGuiMonitorElementClient *pGuiClient = qobject_cast<DQMGuiMonitorElementClient *>(sender());
+
+	if(!pGuiClient)
+		return;
+
+	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
+	std::string collectorName = pClient->getCollectorName();
+
+	QMessageBox::warning(this->getMonitoring()->getView()->getMainWindow(),
+			"Collector shutdown",
+			QString("The following monitor element collector was shut down :\n\n"
+			"* %1\n\n"
+			"If you need to restart it, type in a terminal :\n"
+			"  dqm4hep_start_monitor_element_collector -c %1 \n"
+			"or restart it from the job control.").arg(collectorName.c_str()));
+
+	DQMMonitorElementView *pMeView = this->getMonitoring()->getView()->getMonitorElementView();
+	pMeView->uncheckAllMonitorElements(collectorName);
+	std::cout << "pMeView->enableSubscription(collectorName, false); " << std::endl;
+	pMeView->enableSubscription(collectorName, false);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -263,319 +493,6 @@ void DQMMonitoringController::openFile()
             return;
 
 	this->openFile(fileName.toStdString());
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::saveAs()
-{
-    QString fileName = QFileDialog::getSaveFileName(this->getMonitoring()->getView()->getMainWindow(), tr("Export file"),
-                    QString(""),
-                    "XML files (*.xml)");
-
-    if(fileName.isEmpty())
-            return;
-
-	this->saveAs(fileName.toStdString());
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openBrowser()
-{
-	DQMBrowserWidget *pBrowser = new DQMBrowserWidget(this->getMonitoring());
-
-	pBrowser->setWindowTitle("DQM Browser");
-
-	QString iconDir = QString(DQMViz_DIR) + "/icons";
-	pBrowser->setWindowIcon(QIcon(iconDir + "/MON_BROWSER.png"));
-	pBrowser->setAttribute(Qt::WA_DeleteOnClose, true);
-	pBrowser->show();
-
-	QObject::connect(this->getMonitoring()->getView()->getMainWindow(), SIGNAL(destroyed()), pBrowser, SLOT(close()));
-
-//	m_browserList << pBrowser;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::aboutDQM4HEP()
-{
-	QString iconDir = QString(DQMViz_DIR) + "/icons";
-
-
-	QStringList authorList;
-
-	authorList << "R. Ete , IPNL"
-			<< "A. Pingault, GHENT"
-			<< "L. Mirabito, IPNL";
-
-	QString text;
-
-	text += "DQMHEP : Data Quality Monitoring for High Energy Physics\n\n";
-	text += "Version : "+ QString(DQMViz_VERSION_STR) + "\n\n";
-
-	text += "DQM4HEP is free software: you can redistribute it and/or modify ";
-	text +=	"it under the terms of the GNU General Public License as published by";
-	text +=	"the Free Software Foundation, either version 3 of the License, or";
-	text +=	"(at your option) any later version.\n\n";
-
-	text +=	"DQM4HEP is distributed in the hope that it will be useful,";
-	text +=	"but WITHOUT ANY WARRANTY; without even the implied warranty of";
-	text +=	"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the";
-	text +=	"GNU General Public License for more details.\n\n";
-
-	text +=	"You should have received a copy of the GNU General Public License";
-	text +=	"along with DQM4HEP. If not, see <http://www.gnu.org/licenses/>.\n\n";
-
-	text += "Authors :\n";
-	text += "  * R. Ete , IPNL\n";
-	text += "  * A. Pingault, Ghent University\n";
-	text += "  * L. Mirabito, IPNL\n\n";
-
-	text += "Please, send comments or report bug via the github interface ";
-	text += "<https://github.com/rete/DQM4HEP/issues>";
-
-	QMessageBox *pMessageBox = new QMessageBox(this->getMonitoring()->getView()->getMainWindow());
-	pMessageBox->setWindowTitle("About DQM4HEP");
-	pMessageBox->setIconPixmap(QPixmap(iconDir + "/MON_WIN.png").scaled(QSize(100, 100), Qt::KeepAspectRatioByExpanding));
-	pMessageBox->setText(text);
-
-	pMessageBox->exec();
-
-	delete pMessageBox;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openDoxygenDoc()
-{
-	QString indexHtml;
-	indexHtml += DQMCore_DIR;
-	indexHtml += "/doc/html/index.html";
-
-	QDir dir;
-	if(!dir.exists(indexHtml))
-	{
-		QMessageBox::information(this->getMonitoring()->getView()->getMainWindow(),
-				"Not found",
-				"DQM4HEP was not built with Doxygen documentation. Sorry !");
-		return;
-	}
-
-	QDesktopServices::openUrl(QUrl::fromLocalFile(indexHtml));
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openUserGuide()
-{
-	/* nop */
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openGithubPage()
-{
-	QDesktopServices::openUrl(QUrl("https://github.com/DQM4HEP"));
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openIssuesPage()
-{
-	QDesktopServices::openUrl(QUrl("https://github.com/DQM4HEP/DQMViz/issues"));
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::clearViewAndModel()
-{
-	this->getMonitoring()->getView()->clear();
-	this->getMonitoring()->getModel()->clear();
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::sendMonitorElementRequests()
-{
-	DQMMonitorElementView *pMonitorElementView = this->getMonitoring()->getView()->getMonitorElementView();
-
-	QStringList collectorNames = pMonitorElementView->getCollectorNames();
-	int nRequestedElements = 0;
-
-	for(int i=0 ; i<collectorNames.count() ; i++)
-	{
-		QList<QTreeWidgetItem*> checkedMonitorElements = pMonitorElementView->getCheckedMonitorElements(collectorNames.at(i).toStdString());
-
-		DQMMonitorElementRequest request;
-
-		for(int j=0 ; j<checkedMonitorElements.count() ; j++)
-		{
-			QTreeWidgetItem *pTreeItem = checkedMonitorElements.at(j);
-			DQMMonitorElementNavigator *pNavigator = qobject_cast<DQMMonitorElementNavigator*>(pTreeItem->treeWidget());
-
-			std::string moduleName = pNavigator->getModuleName(pTreeItem).toStdString();
-			std::string fullPath = pNavigator->getFullPathName(pTreeItem).toStdString();
-			std::string name = pTreeItem->text(0).toStdString();
-			std::string fullPathName = (DQMPath(fullPath) + name).getPath();
-
-			if(moduleName.empty() || fullPathName.empty())
-				continue;
-
-			nRequestedElements ++;
-			request.m_requestList.push_back(DQMMonitorElementRequest::ModuleMonitorElementPair(moduleName, fullPathName));
-		}
-
-		this->sendMonitorElementRequest(collectorNames.at(i).toStdString(), request);
-	}
-
-	if(nRequestedElements > 0)
-		this->log(MESSAGE, DQM4HEP::typeToString(nRequestedElements) + std::string(" request(s) sent to collectors"));
-	else
-		this->log(WARNING, "No request sent to collectors");
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::sendMonitorElementRequest(const std::string &collectorName, const DQMMonitorElementRequest &request)
-{
-	if(request.m_requestList.empty() || collectorName.empty())
-		return;
-
-	DQMGuiMonitorElementClient *pClient = this->getClient(collectorName);
-
-	if(!pClient->getMonitorElementClient()->isConnectedToService())
-		pClient->getMonitorElementClient()->connectToService();
-
-	pClient->getMonitorElementClient()->sendMonitorElementPublicationRequest(request);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openMonitorElementInfo(DQMGuiMonitorElement *pGuiMonitorElement) const
-{
-	QDialog *pDialog = new QDialog();
-	pDialog->setWindowTitle("Monitor element info (" + QString(pGuiMonitorElement->getMonitorElement()->getName().c_str()) + ")");
-
-	QHBoxLayout *pLayout = new QHBoxLayout();
-	pDialog->setLayout(pLayout);
-
-	DQMMonitorElementInfoWidget *pMEInfoWidget = new DQMMonitorElementInfoWidget(pGuiMonitorElement);
-	pMEInfoWidget->showTab(DQMMonitorElementInfoWidget::MONITOR_ELEMENT_INFO);
-
-	pLayout->addWidget(pMEInfoWidget);
-
-	pDialog->exec();
-	pDialog->deleteLater();
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openQualityTestResults(DQMGuiMonitorElement *pGuiMonitorElement) const
-{
-	QDialog *pDialog = new QDialog();
-	pDialog->setWindowTitle("Monitor element info (" + QString(pGuiMonitorElement->getMonitorElement()->getName().c_str()) + ")");
-
-	QHBoxLayout *pLayout = new QHBoxLayout();
-	pDialog->setLayout(pLayout);
-
-	DQMMonitorElementInfoWidget *pMEInfoWidget = new DQMMonitorElementInfoWidget(pGuiMonitorElement);
-	pMEInfoWidget->showTab(DQMMonitorElementInfoWidget::QUALITY_TEST_RESULTS);
-
-	pLayout->addWidget(pMEInfoWidget);
-
-	pDialog->exec();
-	pDialog->deleteLater();
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMMonitoringController::openInROOTWindow(DQMGuiMonitorElement *pMonitorElement) const
-{
-	TObject *pObject = pMonitorElement->getMonitorElement()->getObject();
-
-	if(!pObject)
-		return;
-
-	pid_t pid = fork();
-
-	// parent process
-	if(pid != 0)
-		return;
-
-	// child process
-	char templateFile[] = "/tmp/canvasTmpXXXXXX";
-	int ret = mkstemp(templateFile);
-
-	if(ret < 0)
-		exit(-1);
-
-	std::string tmpRootFileName = templateFile;
-	tmpRootFileName += ".root";
-
-	TFile *pTmpRootFile = TFile::Open(tmpRootFileName.c_str(), "RECREATE");
-
-	if(!pTmpRootFile)
-		exit(1);
-
-	// re-add the pave stats
-	TH1 *pHistogram = (TH1*)pObject;
-
-	if(pHistogram)
-		pHistogram->SetStats(1);
-
-	pTmpRootFile->cd();
-	pObject->Write("dqm4hep_open_root_canvas");
-	delete pTmpRootFile;
-
-	// full program name
-	std::string fullPathProg = std::string(DQMCore_DIR) + "/bin/dqm4hep_open_root_canvas";
-	char executivePath[1000];
-	memset(executivePath, 0, 1000);
-
-	memcpy(executivePath, fullPathProg.c_str(), fullPathProg.size());
-
-	// fill arguments
-	const unsigned int maxNArgs = 100;
-	const unsigned int maxMArgs = 1000;
-
-	char argv[maxNArgs][maxMArgs];
-	char *pArgv[maxNArgs];
-
-	for(unsigned int i=0 ; i<maxNArgs ; i++)
-		for(unsigned int j=0 ; j<maxMArgs ; j++)
-			argv[i][j] = char(NULL);
-
-	pArgv[0] = executivePath;
-	sprintf(argv[1], "%s", "-f");
-	pArgv[1] = & argv[1][0];
-	sprintf(argv[2], "%s", tmpRootFileName.c_str());
-	pArgv[2] = & argv[2][0];
-	pArgv[3] = NULL;
-
-	// fill environment
-	const unsigned int maxNEnv = 10;
-	const unsigned int maxMEnv = 1000;
-
-	char env[maxNEnv][maxMEnv];
-	char *pEnv[maxNEnv];
-
-	for(unsigned int i=0 ; i<maxNEnv ; i++)
-		for(unsigned int j=0 ; j<maxMEnv ; j++)
-			env[i][j] = char(NULL);
-
-	sprintf(env[0], "%s", "DISPLAY=:0");
-	pEnv[0] = & env[0][0];
-	pEnv[1] = NULL;
-
-	// start root panel from dqm4hep specific executable
-	int execveRet = execve(executivePath, pArgv, pEnv);
-
-	streamlog_out(ERROR) << "ERROR ! execve returned " << execveRet << " with errno set to " << errno << std::endl;
-	streamlog_out(ERROR) << "Aborting" << std::endl;
-
-	exit(1);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -662,6 +579,20 @@ void DQMMonitoringController::openFile(const std::string &fileName)
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitoringController::saveAs()
+{
+    QString fileName = QFileDialog::getSaveFileName(this->getMonitoring()->getView()->getMainWindow(), tr("Export file"),
+                    QString(""),
+                    "XML files (*.xml)");
+
+    if(fileName.isEmpty())
+            return;
+
+	this->saveAs(fileName.toStdString());
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMMonitoringController::saveAs(const std::string &fileName) const
 {
 	if(fileName.empty())
@@ -706,65 +637,235 @@ void DQMMonitoringController::saveAs(const std::string &fileName) const
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitoringController::saveAs(DQMCanvas *pCanvas)
+void DQMMonitoringController::openBrowser()
 {
-    QStringList formatList;
-    QStringList extensionList;
-    QString selectedFormat;
+	DQMBrowserWidget *pBrowser = new DQMBrowserWidget(this->getMonitoring());
 
-    formatList
-            << "Postscript (*.ps)"
-            << "Encapsulated Postscript (*.eps)"
-            << "PDF (*.pdf)"
-            << "GIF (*.gif)"
-            << "JPG (*.jpg)"
-            << "PNG (*.png)"
-            << "ROOT Macro (*.C)"
-            << "ROOT Files (*.root)";
+	pBrowser->setWindowTitle("DQM Browser");
 
-    extensionList
-            << ".ps"
-            << ".eps"
-            << ".pdf"
-            << ".gif"
-            << ".jpg"
-            << ".png"
-            << ".C"
-            << ".root";
+	QString iconDir = QString(DQMViz_DIR) + "/icons";
+	pBrowser->setWindowIcon(QIcon(iconDir + "/MON_BROWSER.png"));
+	pBrowser->setAttribute(Qt::WA_DeleteOnClose, true);
+	pBrowser->show();
 
-    QString fileName = QFileDialog::getSaveFileName(this->getMonitoring()->getView()->getMainWindow(),
-    		"Save as",
-            "",
-            formatList.join(";;"),
-            &selectedFormat);
-
-    std::cout << "selectedFormat : " << selectedFormat.toStdString() << std::endl;
-
-    if(fileName.isEmpty())
-    	return;
-
-    int lastIndexOf = fileName.lastIndexOf(extensionList.at(formatList.indexOf(selectedFormat)));
-    QString baseFileName;
-    QString extensionFileName;
-
-    if(lastIndexOf < 0)
-    {
-        lastIndexOf = fileName.size() -1;
-        baseFileName = fileName;
-        int index = formatList.indexOf(selectedFormat);
-        extensionFileName = extensionList.at(index);
-    }
-    else
-    {
-        baseFileName = fileName.left(lastIndexOf);
-        extensionFileName = fileName.right(fileName.size() - lastIndexOf);
-    }
-
-    std::string realFileName = (baseFileName + extensionFileName).toStdString();
-
-    // save the canvas
-    pCanvas->getRootWidget()->GetCanvas()->SaveAs(realFileName.c_str());
+	QObject::connect(this->getMonitoring()->getView()->getMainWindow(), SIGNAL(destroyed()), pBrowser, SLOT(close()));
 }
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::aboutDQM4HEP()
+{
+	QString iconDir = QString(DQMViz_DIR) + "/icons";
+
+
+	QStringList authorList;
+
+	authorList << "R. Ete , IPNL"
+			<< "A. Pingault, GHENT"
+			<< "L. Mirabito, IPNL";
+
+	QString text;
+
+	text += "DQMHEP : Data Quality Monitoring for High Energy Physics\n\n";
+	text += "Version : "+ QString(DQMViz_VERSION_STR) + "\n\n";
+
+	text += "DQM4HEP is free software: you can redistribute it and/or modify ";
+	text +=	"it under the terms of the GNU General Public License as published by";
+	text +=	"the Free Software Foundation, either version 3 of the License, or";
+	text +=	"(at your option) any later version.\n\n";
+
+	text +=	"DQM4HEP is distributed in the hope that it will be useful,";
+	text +=	"but WITHOUT ANY WARRANTY; without even the implied warranty of";
+	text +=	"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the";
+	text +=	"GNU General Public License for more details.\n\n";
+
+	text +=	"You should have received a copy of the GNU General Public License";
+	text +=	"along with DQM4HEP. If not, see <http://www.gnu.org/licenses/>.\n\n";
+
+	text += "Authors :\n";
+	text += "  * R. Ete , IPNL\n";
+	text += "  * A. Pingault, Ghent University\n";
+	text += "  * L. Mirabito, IPNL\n\n";
+
+	text += "Please, send comments or report bug via the github interface ";
+	text += "<https://github.com/DQM4HEP/DQMViz/issues>";
+
+	QMessageBox *pMessageBox = new QMessageBox(this->getMonitoring()->getView()->getMainWindow());
+	pMessageBox->setWindowTitle("About DQM4HEP");
+	pMessageBox->setIconPixmap(QPixmap(iconDir + "/MON_WIN.png").scaled(QSize(100, 100), Qt::KeepAspectRatioByExpanding));
+	pMessageBox->setText(text);
+
+	pMessageBox->exec();
+	pMessageBox->deleteLater();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openDoxygenDoc()
+{
+	QString indexHtml;
+	indexHtml += DQMCore_DIR;
+	indexHtml += "/doc/html/index.html";
+
+	QDir dir;
+	if(!dir.exists(indexHtml))
+	{
+		QMessageBox::information(this->getMonitoring()->getView()->getMainWindow(),
+				"Not found",
+				"DQM4HEP was not built with Doxygen documentation. Sorry !");
+		return;
+	}
+
+	QDesktopServices::openUrl(QUrl::fromLocalFile(indexHtml));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openUserGuide()
+{
+	/* nop */
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openGithubPage()
+{
+	QDesktopServices::openUrl(QUrl("https://github.com/DQM4HEP"));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openIssuesPage()
+{
+	QDesktopServices::openUrl(QUrl("https://github.com/DQM4HEP/DQMViz/issues"));
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openMonitorElementInfo(DQMGuiMonitorElement *pGuiMonitorElement) const
+{
+	QDialog *pDialog = new QDialog();
+	pDialog->setWindowTitle("Monitor element info (" + QString(pGuiMonitorElement->getMonitorElement()->getName().c_str()) + ")");
+
+	QHBoxLayout *pLayout = new QHBoxLayout();
+	pDialog->setLayout(pLayout);
+
+	DQMMonitorElementInfoWidget *pMEInfoWidget = new DQMMonitorElementInfoWidget(pGuiMonitorElement);
+	pMEInfoWidget->showTab(DQMMonitorElementInfoWidget::MONITOR_ELEMENT_INFO);
+
+	pLayout->addWidget(pMEInfoWidget);
+
+	pDialog->exec();
+	pDialog->deleteLater();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openQualityTestResults(DQMGuiMonitorElement *pGuiMonitorElement) const
+{
+	QDialog *pDialog = new QDialog();
+	pDialog->setWindowTitle("Monitor element info (" + QString(pGuiMonitorElement->getMonitorElement()->getName().c_str()) + ")");
+
+	QHBoxLayout *pLayout = new QHBoxLayout();
+	pDialog->setLayout(pLayout);
+
+	DQMMonitorElementInfoWidget *pMEInfoWidget = new DQMMonitorElementInfoWidget(pGuiMonitorElement);
+	pMEInfoWidget->showTab(DQMMonitorElementInfoWidget::QUALITY_TEST_RESULTS);
+
+	pLayout->addWidget(pMEInfoWidget);
+
+	pDialog->exec();
+	pDialog->deleteLater();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::openInROOTWindow(DQMGuiMonitorElement *pMonitorElement) const
+{
+	TObject *pObject = pMonitorElement->getMonitorElement()->getObject();
+
+	if(!pObject)
+		return;
+
+	pid_t pid = fork();
+
+	// parent process
+	if(pid != 0)
+		return;
+
+	// child process
+	char templateFile[] = "/tmp/canvasTmpXXXXXX.root";
+	int ret = mkstemps(templateFile, 5);
+
+	if(ret < 0)
+		exit(-1);
+
+	std::string tmpRootFileName = templateFile;
+	TFile *pTmpRootFile = TFile::Open(tmpRootFileName.c_str(), "RECREATE");
+
+	if(!pTmpRootFile)
+		exit(1);
+
+	// re-add the pave stats
+	TH1 *pHistogram = (TH1*)pObject;
+
+	if(pHistogram)
+		pHistogram->SetStats(1);
+
+	pTmpRootFile->cd();
+	pObject->Write("dqm4hep_open_root_canvas");
+	delete pTmpRootFile;
+
+	// full program name
+	std::string fullPathProg = std::string(DQMCore_DIR) + "/bin/dqm4hep_open_root_canvas";
+	char executivePath[1000];
+	memset(executivePath, 0, 1000);
+
+	memcpy(executivePath, fullPathProg.c_str(), fullPathProg.size());
+
+	// fill arguments
+	const unsigned int maxNArgs = 100;
+	const unsigned int maxMArgs = 1000;
+
+	char argv[maxNArgs][maxMArgs];
+	char *pArgv[maxNArgs];
+
+	for(unsigned int i=0 ; i<maxNArgs ; i++)
+		for(unsigned int j=0 ; j<maxMArgs ; j++)
+			argv[i][j] = char(NULL);
+
+	pArgv[0] = executivePath;
+	sprintf(argv[1], "%s", "-f");
+	pArgv[1] = & argv[1][0];
+	sprintf(argv[2], "%s", tmpRootFileName.c_str());
+	pArgv[2] = & argv[2][0];
+	pArgv[3] = NULL;
+
+	// fill environment
+	const unsigned int maxNEnv = 10;
+	const unsigned int maxMEnv = 1000;
+
+	char env[maxNEnv][maxMEnv];
+	char *pEnv[maxNEnv];
+
+	for(unsigned int i=0 ; i<maxNEnv ; i++)
+		for(unsigned int j=0 ; j<maxMEnv ; j++)
+			env[i][j] = char(NULL);
+
+	sprintf(env[0], "%s", "DISPLAY=:0");
+	pEnv[0] = & env[0][0];
+	pEnv[1] = NULL;
+
+	// start root panel from dqm4hep specific executable
+	int execveRet = execve(executivePath, pArgv, pEnv);
+
+	streamlog_out(ERROR) << "ERROR ! execve returned " << execveRet << " with errno set to " << errno << std::endl;
+	streamlog_out(ERROR) << "Aborting" << std::endl;
+
+	exit(1);
+}
+
+//-------------------------------------------------------------------------------------------------
 
 void DQMMonitoringController::saveAs(DQMCanvasArea *pCanvasArea)
 {
@@ -846,31 +947,110 @@ void DQMMonitoringController::saveAs(DQMCanvasArea *pCanvasArea)
     delete pFile;
 }
 
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::saveAs(DQMCanvas *pCanvas)
+{
+    QStringList formatList;
+    QStringList extensionList;
+    QString selectedFormat;
+
+    formatList
+            << "Postscript (*.ps)"
+            << "Encapsulated Postscript (*.eps)"
+            << "PDF (*.pdf)"
+            << "GIF (*.gif)"
+            << "JPG (*.jpg)"
+            << "PNG (*.png)"
+            << "ROOT Macro (*.C)"
+            << "ROOT Files (*.root)";
+
+    extensionList
+            << ".ps"
+            << ".eps"
+            << ".pdf"
+            << ".gif"
+            << ".jpg"
+            << ".png"
+            << ".C"
+            << ".root";
+
+    QString fileName = QFileDialog::getSaveFileName(this->getMonitoring()->getView()->getMainWindow(),
+    		"Save as",
+            "",
+            formatList.join(";;"),
+            &selectedFormat);
+
+    std::cout << "selectedFormat : " << selectedFormat.toStdString() << std::endl;
+
+    if(fileName.isEmpty())
+    	return;
+
+    int lastIndexOf = fileName.lastIndexOf(extensionList.at(formatList.indexOf(selectedFormat)));
+    QString baseFileName;
+    QString extensionFileName;
+
+    if(lastIndexOf < 0)
+    {
+        lastIndexOf = fileName.size() -1;
+        baseFileName = fileName;
+        int index = formatList.indexOf(selectedFormat);
+        extensionFileName = extensionList.at(index);
+    }
+    else
+    {
+        baseFileName = fileName.left(lastIndexOf);
+        extensionFileName = fileName.right(fileName.size() - lastIndexOf);
+    }
+
+    std::string realFileName = (baseFileName + extensionFileName).toStdString();
+
+    // save the canvas
+    pCanvas->getRootWidget()->GetCanvas()->SaveAs(realFileName.c_str());
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::clear()
+{
+	for(DQMGuiMonitorElementClientMap::iterator iter = m_clientMap.begin(), endIter = m_clientMap.end() ;
+			endIter != iter ; ++iter)
+	{
+		iter->second->deleteLater();
+	}
+
+	m_clientMap.clear();
+	m_updateMode = false;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::clearViewAndModel()
+{
+	this->getMonitoring()->getView()->clear();
+	this->getMonitoring()->getModel()->clear();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringController::clearMonitoring()
+{
+	// first clear the client connections to avoid updates
+	this->clear();
+
+	// clear contents
+	this->getMonitoring()->getView()->clear();
+	this->getMonitoring()->getModel()->clear();
+}
+
+//-------------------------------------------------------------------------------------------------
 
 void DQMMonitoringController::quit()
 {
-	this->clear();
-	this->getMonitoring()->getModel()->clear();
-	this->getMonitoring()->getView()->clear();
+	this->clearMonitoring();
 	qApp->closeAllWindows();
 	qApp->quit();
 }
-
-
-void DQMMonitoringController::handleMonitorElementPublicationReception(const DQMMonitorElementPublication &publication)
-{
-	DQMGuiMonitorElementClient *pClient = qobject_cast<DQMGuiMonitorElementClient*>(sender());
-
-	for(DQMMonitorElementPublication::PublicationMap::const_iterator iter = publication.m_publication.begin(), endIter = publication.m_publication.end() ;
-			endIter != iter ; ++iter)
-	{
-		std::string moduleName = iter->first;
-
-		for(int i=0 ; i<iter->second.size() ; i++)
-			this->getMonitoring()->getModel()->updateMonitorElement(iter->second.at(i));
-	}
-}
-
 
 } 
 

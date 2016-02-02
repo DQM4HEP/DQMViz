@@ -35,7 +35,7 @@ DQMGuiMonitorElementClient::DQMGuiMonitorElementClient(const std::string &collec
 		m_pMonitorElementClient(NULL)
 {
 	m_pMonitorElementClient = new DQMMonitorElementClient();
-	m_pMonitorElementClient->setHandler(this);
+	m_pMonitorElementClient->addListener(this);
 	m_pMonitorElementClient->setCollectorName(collectorName);
 }
 
@@ -55,42 +55,54 @@ DQMMonitorElementClient *DQMGuiMonitorElementClient::getMonitorElementClient() c
 
 //-------------------------------------------------------------------------------------------------
 
-StatusCode DQMGuiMonitorElementClient::receiveCollectorInfo(DQMMonitorElementClient */*pClient*/, const DQMCollectorInfo &collectorInfo)
+void DQMGuiMonitorElementClient::monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMCollectorInfo &collectorInfo)
 {
 	emit collectorInfoReceived(collectorInfo);
-	return STATUS_CODE_SUCCESS;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-StatusCode DQMGuiMonitorElementClient::receiveMonitorElementNameList(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &infoList)
+void DQMGuiMonitorElementClient::availableMonitorElementListReceived(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &infoList)
 {
 	emit monitorElementListNameReceived(infoList);
-	return STATUS_CODE_SUCCESS;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-StatusCode DQMGuiMonitorElementClient::receiveMonitorElementPublication(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementPublication &publication)
+void DQMGuiMonitorElementClient::monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMMonitorElementPublication &publication)
 {
-	emit monitorElementPublicationReceived(publication);
-	return STATUS_CODE_SUCCESS;
+	// get copy of publication and clear the one in argument
+	DQMMonitorElementPublication publicationCopy(publication);
+	publication.clear();
+	emit monitorElementPublicationReceived(publicationCopy);
 }
 
 //-------------------------------------------------------------------------------------------------
 
-StatusCode DQMGuiMonitorElementClient::handleClientConnection(DQMMonitorElementClient */*pClient*/)
+void DQMGuiMonitorElementClient::onMonitorElementClientConnect(DQMMonitorElementClient */*pClient*/)
 {
-	emit clientConnected();
-	return STATUS_CODE_SUCCESS;
+	emit onMonitorElementClientConnect();
 }
 
 //-------------------------------------------------------------------------------------------------
 
-StatusCode DQMGuiMonitorElementClient::handleClientDisconnection(DQMMonitorElementClient */*pClient*/)
+void DQMGuiMonitorElementClient::onMonitorElementClientDisconnect(DQMMonitorElementClient */*pClient*/)
 {
-	emit clientDisconnected();
-	return STATUS_CODE_SUCCESS;
+	emit onMonitorElementClientDisconnect();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMGuiMonitorElementClient::onServerStartup(DQMMonitorElementClient */*pClient*/)
+{
+	emit onServerStartup();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMGuiMonitorElementClient::onServerShutdown(DQMMonitorElementClient */*pClient*/)
+{
+	emit onServerShutdown();
 }
 
 } 
