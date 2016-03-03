@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
 
 	QApplication app(argc, argv);
 
-	qRegisterMetaType<DQMCollectorInfo>("DQMCollectorInfo");
+	qRegisterMetaType<DQMHostInfo>("DQMHostInfo");
 	qRegisterMetaType<DQMMonitorElementInfoList>("DQMMonitorElementInfoList");
-	qRegisterMetaType<DQMMonitorElementPublication>("DQMMonitorElementPublication");
+	qRegisterMetaType<DQMPublication>("DQMPublication");
 	qRegisterMetaType<DQMGuiMonitorElementList>("DQMMonitorElementList");
 	qRegisterMetaType<DQMMonitorElementRequest>("DQMMonitorElementRequest");
 	qRegisterMetaType<DQMGuiMonitorElement *>("DQMGuiMonitorElement *");
@@ -93,12 +93,6 @@ int main(int argc, char* argv[])
 
 	pView->buildView();
 	pView->showView();
-
-//	DQMMonitorMainWindow mainWindow;
-//	mainWindow.show();
-//
-//	if(settingsFileArg.isSet())
-//		mainWindow.importFromXml(settingsFileArg.getValue());
 
 	return app.exec();
 }

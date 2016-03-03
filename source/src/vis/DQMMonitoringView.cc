@@ -32,7 +32,6 @@
 #include "dqm4hep/vis/DQMMonitoring.h"
 #include "dqm4hep/vis/DQMMonitorElementView.h"
 #include "dqm4hep/vis/DQMCanvasView.h"
-#include "dqm4hep/DQMMessaging.h"
 #include "DQMCoreConfig.h"
 #include "DQMVizConfig.h"
 

@@ -55,7 +55,7 @@ DQMMonitorElementClient *DQMGuiMonitorElementClient::getMonitorElementClient() c
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMGuiMonitorElementClient::monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMCollectorInfo &collectorInfo)
+void DQMGuiMonitorElementClient::monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMHostInfo &collectorInfo)
 {
 	emit collectorInfoReceived(collectorInfo);
 }
@@ -69,10 +69,10 @@ void DQMGuiMonitorElementClient::availableMonitorElementListReceived(DQMMonitorE
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMGuiMonitorElementClient::monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMMonitorElementPublication &publication)
+void DQMGuiMonitorElementClient::monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMPublication &publication)
 {
 	// get copy of publication and clear the one in argument
-	DQMMonitorElementPublication publicationCopy(publication);
+	DQMPublication publicationCopy(publication);
 	publication.clear();
 	emit monitorElementPublicationReceived(publicationCopy);
 }

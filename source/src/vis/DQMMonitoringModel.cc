@@ -301,7 +301,9 @@ void DQMMonitoringModel::loadMonitorElementInfoList(const std::string &collector
 	for(DQMMonitorElementInfoList::const_iterator meIter = nameList.begin(), meEndIter = nameList.end() ;
 			meEndIter != meIter ; ++meIter)
 	{
-		DQMPath path = meIter->m_monitorElementFullPath;
+		DQMPath path = meIter->find( DQMKey::ME_PATH )->second;
+		std::string moduleName = meIter->find( DQMKey::MODULE_NAME )->second;
+		std::string monitorElementName = meIter->find( DQMKey::ME_NAME )->second;
 		DQMGuiMonitorElement *pMonitorElement = NULL;
 
 		for(DQMGuiMonitorElementList::const_iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;
@@ -312,10 +314,10 @@ void DQMMonitoringModel::loadMonitorElementInfoList(const std::string &collector
 			const std::string &meModuleName = (*iter)->getMonitorElement()->getModuleName();
 			const std::string &meName = (*iter)->getMonitorElement()->getName();
 
-			bool sameCollectorName = (collectorName == meCollectorName);
-			bool samePath =          (path          == mePath);
-			bool sameModuleName =    (meIter->m_moduleName    == meModuleName);
-			bool sameName =          (meIter->m_monitorElementName          == meName);
+			bool sameCollectorName = (collectorName      == meCollectorName);
+			bool samePath =          (path               == mePath);
+			bool sameModuleName =    (moduleName         == meModuleName);
+			bool sameName =          (monitorElementName == meName);
 
 			if(sameCollectorName && samePath && sameModuleName && sameName)
 			{
@@ -326,7 +328,7 @@ void DQMMonitoringModel::loadMonitorElementInfoList(const std::string &collector
 
 		if(NULL == pMonitorElement)
 		{
-			pMonitorElement = this->createGuiMonitorElement(collectorName, meIter->m_moduleName, meIter->m_monitorElementFullPath, meIter->m_monitorElementName);
+			pMonitorElement = this->createGuiMonitorElement(collectorName, moduleName, path.getPath(), monitorElementName);
 
 			// add it to tmp list
 			addedMonitorElement.push_back(pMonitorElement);

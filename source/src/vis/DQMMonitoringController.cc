@@ -38,7 +38,6 @@
 #include "dqm4hep/vis/DQMBrowserWidget.h"
 #include "dqm4hep/vis/DQMMonitorElementInfoWidget.h"
 #include "dqm4hep/DQMMonitorElement.h"
-#include "dqm4hep/DQMMessaging.h"
 #include "DQMCoreConfig.h"
 #include "DQMVizConfig.h"
 
@@ -124,8 +123,8 @@ DQMGuiMonitorElementClient *DQMMonitoringController::getClient(const std::string
 	DQMGuiMonitorElementClient *pNewClient = this->createClient(collectorName);
 
 	// to receive monitor elements
-	connect(pNewClient, SIGNAL(monitorElementPublicationReceived(const DQMMonitorElementPublication &)),
-			this, SLOT(receiveMonitorElementPublication(const DQMMonitorElementPublication &)));
+	connect(pNewClient, SIGNAL(monitorElementPublicationReceived(const DQMPublication &)),
+			this, SLOT(receiveMonitorElementPublication(const DQMPublication &)));
 
 	// to handle server startup
 	connect(pNewClient, SIGNAL(onServerStartup()), this, SLOT(handleServerStartup()));
@@ -315,7 +314,7 @@ void DQMMonitoringController::queryUpdate(DQMGuiMonitorElement *pMonitorElement)
 	std::string collectorName = pMonitorElement->getMonitorElement()->getCollectorName();
 
 	DQMMonitorElementRequest request;
-	request.push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
+	request.insert(DQMMonitorElementRequest::value_type(moduleName, fullName));
 
 	this->querySubscribedMonitorElements(collectorName, request);
 }
@@ -334,7 +333,7 @@ void DQMMonitoringController::queryUpdate(const DQMGuiMonitorElementList &monito
 		std::string moduleName = (*iter)->getMonitorElement()->getModuleName();
 		std::string collectorName = (*iter)->getMonitorElement()->getCollectorName();
 
-		requestMap[collectorName].push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
+		requestMap[collectorName].insert(DQMMonitorElementRequest::value_type(moduleName, fullName));
 	}
 
 	for(std::map<std::string, DQMMonitorElementRequest>::iterator iter = requestMap.begin(), endIter = requestMap.end() ;
@@ -346,10 +345,10 @@ void DQMMonitoringController::queryUpdate(const DQMGuiMonitorElementList &monito
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitoringController::receiveMonitorElementPublication(const DQMMonitorElementPublication &publication)
+void DQMMonitoringController::receiveMonitorElementPublication(const DQMPublication &publication)
 {
 	std::cout << "Received publication of " << publication.size() << " modules" << std::endl;
-	for(DQMMonitorElementPublication::const_iterator iter = publication.begin(), endIter = publication.end() ;
+	for(DQMPublication::const_iterator iter = publication.begin(), endIter = publication.end() ;
 			endIter != iter ; ++iter)
 	{
 		std::string moduleName = iter->first;
@@ -389,7 +388,7 @@ void DQMMonitoringController::handleServerStartup()
 		std::string name = items.at(j)->text(0).toStdString();
 		std::string fullName = (DQMPath(path) + name).getPath();
 
-		request.push_back(DQMMonitorElementRequest::value_type(moduleName, fullName));
+		request.insert(DQMMonitorElementRequest::value_type(moduleName, fullName));
 	}
 
 	if(!pClient->isConnectedToService())

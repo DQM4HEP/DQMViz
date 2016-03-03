@@ -38,7 +38,6 @@
 // -- dqm4hep headers
 #include "dqm4hep/DQMLogger.h"
 #include "dqm4hep/vis/DQMGuiMonitorElement.h"
-#include "dqm4hep/DQMMessaging.h"
 
 namespace dqm4hep
 {
@@ -160,7 +159,7 @@ private slots:
 	/** Call back method called by monitor element clients
 	 *  when a publication is received
 	 */
-	void receiveMonitorElementPublication(const DQMMonitorElementPublication &publication);
+	void receiveMonitorElementPublication(const DQMPublication &publication);
 
 	/** Send the list of subscribed elements to the collector.
 	 *  This is usually called when the server is restarted

@@ -42,7 +42,6 @@ namespace dqm4hep
 class DQMMonitoring;
 class DQMGuiMonitorElementClient;
 class DQMGuiMonitorElement;
-class DQMMonitorElementInfoList;
 
 /** DQMMonitoringModel class
  */

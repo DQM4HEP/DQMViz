@@ -29,7 +29,6 @@
 #ifndef DQMGUIMONITORELEMENTCLIENT_H
 #define DQMGUIMONITORELEMENTCLIENT_H
 
-#include "dqm4hep/DQMMessaging.h"
 #include "dqm4hep/DQMMonitorElementClient.h"
 
 #include <QObject>
@@ -59,7 +58,7 @@ public:
 signals:
 	/** Qt signal emitted when the dim handler receives a collector info structure
 	 */
-	void collectorInfoReceived(const DQMCollectorInfo &);
+	void collectorInfoReceived(const DQMHostInfo &);
 
 	/** Qt signal emitted when the dim handler receives an info list on monitor elements
 	 */
@@ -67,7 +66,7 @@ signals:
 
 	/** Qt signal emitted when the dim handler receives a monitor element publication
 	 */
-	void monitorElementPublicationReceived(const DQMMonitorElementPublication &);
+	void monitorElementPublicationReceived(const DQMPublication &);
 
 	/** Qt signal emitted when the client is connected
 	 */
@@ -91,12 +90,12 @@ private:
 	void onServerStartup(DQMMonitorElementClient */*pClient*/);
 	void onServerShutdown(DQMMonitorElementClient */*pClient*/);
 	void availableMonitorElementListReceived(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &/*infoList*/);
-	void monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMCollectorInfo &/*collectorInfo*/);
-	void monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMMonitorElementPublication &/*publication*/);
+	void monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMHostInfo &/*collectorInfo*/);
+	void monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMPublication &/*publication*/);
 
 private:
 	DQMMonitorElementClient           *m_pMonitorElementClient;
-	DQMMonitorElementPublication       m_publication;
+	DQMPublication                     m_publication;
 }; 
 
 } 

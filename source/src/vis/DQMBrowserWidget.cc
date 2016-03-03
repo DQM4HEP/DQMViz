@@ -286,9 +286,9 @@ void DQMBrowserWidget::querySearch()
 		return;
 
 	DQMMonitorElementListNameRequest request;
-	request.m_moduleName = m_pModuleNameEdit->text().toStdString();
-	request.m_monitorElementName = m_pMonitorElementNameEdit->text().toStdString();
-	request.m_monitorElementType = static_cast<DQMMonitorElementType>(m_pMonitorElementTypeComboBox->currentIndex());
+	request[ DQMKey::MODULE_NAME ] = m_pModuleNameEdit->text().toStdString();
+	request[ DQMKey::ME_NAME ] = m_pMonitorElementNameEdit->text().toStdString();
+	request[ DQMKey::ME_TYPE ] = monitorElementTypeToString(static_cast<DQMMonitorElementType>(m_pMonitorElementTypeComboBox->currentIndex()));
 
 	m_pMonitorElementClient->getMonitorElementClient()->queryAvailableMonitorElements(request);
 }
@@ -304,11 +304,11 @@ void DQMBrowserWidget::fillModuleNameList(const DQMMonitorElementInfoList &nameL
 
 	for(unsigned int i=0 ; i<nameList.size() ; i++)
 	{
-		QString moduleName = nameList.at(i).m_moduleName.c_str();
-		QString monitorElementFullPath = nameList.at(i).m_monitorElementFullPath.c_str();
-		QString monitorElementName = nameList.at(i).m_monitorElementName.c_str();
-		QString monitorElementType = nameList.at(i).m_monitorElementType.c_str();
-		QString monitorElementDescription = nameList.at(i).m_monitorElementDescription.c_str();
+		QString moduleName = nameList.at(i).find( DQMKey::MODULE_NAME )->second.c_str();
+		QString monitorElementFullPath = nameList.at(i).find( DQMKey::ME_PATH )->second.c_str();
+		QString monitorElementName = nameList.at(i).find( DQMKey::ME_NAME )->second.c_str();
+		QString monitorElementType = nameList.at(i).find( DQMKey::ME_TYPE )->second.c_str();
+		QString monitorElementDescription = nameList.at(i).find( DQMKey::ME_DESCRIPTION )->second.c_str();
 
 		QStringList itemColumns;
 		itemColumns << moduleName << monitorElementFullPath << monitorElementName << monitorElementType;
@@ -389,11 +389,11 @@ void DQMBrowserWidget::buildMonitorElementInfoList(DQMMonitorElementInfoList &in
 		{
 			DQMMonitorElementInfo info;
 
-			info.m_moduleName = m_pSearchTreeWidget->topLevelItem(i)->text(0).toStdString();
-			info.m_monitorElementFullPath = m_pSearchTreeWidget->topLevelItem(i)->text(1).toStdString();
-			info.m_monitorElementName = m_pSearchTreeWidget->topLevelItem(i)->text(2).toStdString();
-			info.m_monitorElementType = m_pSearchTreeWidget->topLevelItem(i)->text(3).toStdString();
-			info.m_monitorElementDescription = m_pSearchTreeWidget->topLevelItem(i)->toolTip(0).toStdString();
+			info[ DQMKey::MODULE_NAME ] = m_pSearchTreeWidget->topLevelItem(i)->text(0).toStdString();
+			info[ DQMKey::ME_PATH ] = m_pSearchTreeWidget->topLevelItem(i)->text(1).toStdString();
+			info[ DQMKey::ME_NAME ] = m_pSearchTreeWidget->topLevelItem(i)->text(2).toStdString();
+			info[ DQMKey::ME_TYPE ] = m_pSearchTreeWidget->topLevelItem(i)->text(3).toStdString();
+			info[ DQMKey::ME_DESCRIPTION ] = m_pSearchTreeWidget->topLevelItem(i)->toolTip(0).toStdString();
 
 			infoList.push_back(info);
 		}

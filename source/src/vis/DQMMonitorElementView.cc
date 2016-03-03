@@ -138,7 +138,7 @@ void TreeWidgetItem::setData(int column, int role, const QVariant & value)
 
 
 		DQMMonitorElementRequest request;
-		request.push_back(DQMMonitorElementRequest::value_type(moduleName.toStdString(), fullName));
+		request.insert(DQMMonitorElementRequest::value_type(moduleName.toStdString(), fullName));
 
 		if(Qt::Checked == newState)
 		{
