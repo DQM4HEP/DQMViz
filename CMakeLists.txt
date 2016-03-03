@@ -52,8 +52,11 @@ FIND_PACKAGE( DIMJC REQUIRED )
 # ----- Find DQMCore package -----
 FIND_PACKAGE( DQMCore REQUIRED )
 
+# ----- Find xdrstream package -----
+FIND_PACKAGE( xdrstream REQUIRED )
+
 # Include package properties
-FOREACH( pkg ROOT streamlog JSONCPP DIM DIMJC DQMCore )
+FOREACH( pkg ROOT streamlog JSONCPP DIM DIMJC DQMCore xdrstream )
 
   INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
   LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
