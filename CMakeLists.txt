@@ -37,8 +37,8 @@ FIND_PACKAGE( ROOT COMPONENTS ${ROOT_COMPONENT_LIST} REQUIRED )
 # ----- Find Threads or multithreading.-----
 FIND_PACKAGE( Threads REQUIRED )
 
-# ----- Find streamlog package -----
-FIND_PACKAGE( streamlog REQUIRED )
+# ----- Find LOG4CXX package -----
+FIND_PACKAGE( LOG4CXX REQUIRED )
 
 # ----- Find json cpp package -----
 FIND_PACKAGE( JSONCPP REQUIRED )
@@ -56,7 +56,7 @@ FIND_PACKAGE( DQMCore REQUIRED )
 FIND_PACKAGE( xdrstream REQUIRED )
 
 # Include package properties
-FOREACH( pkg ROOT streamlog JSONCPP DIM DIMJC DQMCore xdrstream )
+FOREACH( pkg ROOT LOG4CXX JSONCPP DIM DIMJC DQMCore xdrstream )
 
   INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
   LINK_LIBRARIES( ${${pkg}_LIBRARIES} )

@@ -144,7 +144,6 @@ void TreeWidgetItem::setData(int column, int role, const QVariant & value)
 		{
 			if(m_checkable)
 			{
-				std::cout << "Subscribing to " << fullName << std::endl;
 				pNavigator->getMonitoring()->getController()->subscribe(collectorName.toStdString(), request);
 			}
 			else
@@ -155,7 +154,6 @@ void TreeWidgetItem::setData(int column, int role, const QVariant & value)
 		}
 		else
 		{
-			std::cout << "Un-subscribing to " << fullName << std::endl;
 			pNavigator->getMonitoring()->getController()->unsubscribe(collectorName.toStdString(), request);
 		}
 	}
@@ -167,7 +165,6 @@ void TreeWidgetItem::setData(int column, int role, const QVariant & value)
 
 void TreeWidgetItem::setCheckable(bool checkable)
 {
-	std::cout << "Item " << this->text(0).toStdString() << " set checkable to " << checkable << std::endl;
 	m_checkable = checkable;
 }
 

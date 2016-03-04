@@ -107,7 +107,6 @@ void DQMMonitoringController::log(LogLevel level, const std::string &message)
 
 DQMGuiMonitorElementClient *DQMMonitoringController::createClient(const std::string &collectorName)
 {
-	std::cout << "Creating collector client for " << collectorName << std::endl;
 	return new DQMGuiMonitorElementClient(collectorName);
 }
 
@@ -347,7 +346,6 @@ void DQMMonitoringController::queryUpdate(const DQMGuiMonitorElementList &monito
 
 void DQMMonitoringController::receiveMonitorElementPublication(const DQMPublication &publication)
 {
-	std::cout << "Received publication of " << publication.size() << " modules" << std::endl;
 	for(DQMPublication::const_iterator iter = publication.begin(), endIter = publication.end() ;
 			endIter != iter ; ++iter)
 	{
@@ -369,8 +367,6 @@ void DQMMonitoringController::handleServerStartup()
 
 	DQMMonitorElementClient *pClient = pGuiClient->getMonitorElementClient();
 	std::string collectorName = pClient->getCollectorName();
-
-	std::cout << collectorName << " server startup !" << std::endl;
 
 	// get all subscribed elements
 	DQMMonitorElementView *pMeView = this->getMonitoring()->getView()->getMonitorElementView();
@@ -419,7 +415,6 @@ void DQMMonitoringController::handleServerShutdown()
 
 	DQMMonitorElementView *pMeView = this->getMonitoring()->getView()->getMonitorElementView();
 	pMeView->uncheckAllMonitorElements(collectorName);
-	std::cout << "pMeView->enableSubscription(collectorName, false); " << std::endl;
 	pMeView->enableSubscription(collectorName, false);
 }
 
@@ -844,8 +839,8 @@ void DQMMonitoringController::openInROOTWindow(DQMGuiMonitorElement *pMonitorEle
 	// start root panel from dqm4hep specific executable
 	int execveRet = execve(executivePath, pArgv, pEnv);
 
-	streamlog_out(ERROR) << "ERROR ! execve returned " << execveRet << " with errno set to " << errno << std::endl;
-	streamlog_out(ERROR) << "Aborting" << std::endl;
+	LOG4CXX_ERROR( dqmMainLogger , "ERROR ! execve returned " << execveRet << " with errno set to " << errno );
+	LOG4CXX_ERROR( dqmMainLogger , "Aborting" );
 
 	exit(1);
 }
@@ -965,8 +960,6 @@ void DQMMonitoringController::saveAs(DQMCanvas *pCanvas)
             "",
             formatList.join(";;"),
             &selectedFormat);
-
-    std::cout << "selectedFormat : " << selectedFormat.toStdString() << std::endl;
 
     if(fileName.isEmpty())
     	return;

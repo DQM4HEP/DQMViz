@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
 
 	std::string cmdLineFooter = "Please report bug to <rete@ipnl.in2p3.fr>";
 	TCLAP::CmdLine *pCommandLine = new TCLAP::CmdLine(cmdLineFooter, ' ', DQMViz_VERSION_STR);
+	std::string log4cxx_file = std::string(DQMCore_DIR) + "/conf/defaultLoggerConfig.xml";
 
 	TCLAP::ValueArg<std::string> runControlNameArg(
 				  "r"
@@ -83,21 +84,44 @@ int main(int argc, char* argv[])
 				 , "string");
 	pCommandLine->add(serverNameArg);
 
+	TCLAP::ValueArg<std::string> loggerConfigArg(
+				  "l"
+				 , "logger-config"
+				 , "The xml logger file to configure log4cxx"
+				 , false
+				 , log4cxx_file
+				 , "string");
+	pCommandLine->add(loggerConfigArg);
+
+	std::vector<std::string> allowedLevels;
+	allowedLevels.push_back("INFO");
+	allowedLevels.push_back("WARN");
+	allowedLevels.push_back("DEBUG");
+	allowedLevels.push_back("TRACE");
+	allowedLevels.push_back("ERROR");
+	allowedLevels.push_back("FATAL");
+	allowedLevels.push_back("OFF");
+	allowedLevels.push_back("ALL");
+	TCLAP::ValuesConstraint<std::string> allowedLevelsContraint( allowedLevels );
+
 	TCLAP::ValueArg<std::string> verbosityArg(
 				  "v"
 				 , "verbosity"
-				 , "The verbosity used for this application"
+				 , "The verbosity level used for this application"
 				 , false
-				 , "WARNING"
-				 , "string");
+				 , "INFO"
+				 , &allowedLevelsContraint);
 	pCommandLine->add(verbosityArg);
 
 	// parse command line
-	streamlog_out(MESSAGE) << "Parsing command line ... " << std::endl;
+	std::cout << "Parsing command line ... " << std::endl;
 	pCommandLine->parse(argc, argv);
 
-	std::string verbosity = verbosityArg.getValue();
-	streamlog_init( "DQM4HEP RUN CONTROL" , verbosity );
+	log4cxx_file = loggerConfigArg.getValue();
+	log4cxx::xml::DOMConfigurator::configure(log4cxx_file);
+
+	if( verbosityArg.isSet() )
+		dqmMainLogger->setLevel( log4cxx::Level::toLevel( verbosityArg.getValue() ) );
 
 	QApplication app(argc, argv);
 
