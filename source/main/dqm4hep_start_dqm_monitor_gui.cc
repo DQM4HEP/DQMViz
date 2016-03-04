@@ -31,6 +31,7 @@
 #include "DQMVizConfig.h"       // for soft version
 #include "dqm4hep/DQM4HEP.h"
 #include "dqm4hep/DQMNetworkTool.h"
+#include "dqm4hep/DQMLogging.h"
 
 #include "dqm4hep/vis/DQMMonitoring.h"
 

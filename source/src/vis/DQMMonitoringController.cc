@@ -37,6 +37,7 @@
 #include "dqm4hep/vis/DQMCanvasArea.h"
 #include "dqm4hep/vis/DQMBrowserWidget.h"
 #include "dqm4hep/vis/DQMMonitorElementInfoWidget.h"
+#include "dqm4hep/DQMLogging.h"
 #include "dqm4hep/DQMMonitorElement.h"
 #include "DQMCoreConfig.h"
 #include "DQMVizConfig.h"

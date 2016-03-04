@@ -32,9 +32,10 @@
 #include "dqm4hep/vis/DQMMonitoringView.h"
 #include "dqm4hep/vis/DQMMonitoringModel.h"
 #include "dqm4hep/vis/DQMCanvasView.h"
-#include "dqm4hep/DQMMonitorElement.h"
 #include "dqm4hep/vis/DQMGuiMonitorElement.h"
 #include "dqm4hep/vis/DQMGuiMonitorElementClient.h"
+#include "dqm4hep/DQMMonitorElement.h"
+#include "dqm4hep/DQMLogging.h"
 
 #include <QVBoxLayout>
 #include <QMenu>
