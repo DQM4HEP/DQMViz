@@ -57,9 +57,10 @@ void DQMGuiMonitorElement::update(DQMMonitorElement *pMonitorElement)
 
 	if(m_pMonitorElement)
 	{
-		if(pMonitorElement)
+		if(pMonitorElement && m_pMonitorElement->getObject())
 		{
 			// save previous state
+
 			const std::string &drawOption(m_pMonitorElement->getDrawOption());
 			pMonitorElement->setDrawOption(drawOption);
 		}
