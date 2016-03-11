@@ -119,5 +119,8 @@ int main(int argc, char* argv[])
 	pView->buildView();
 	pView->showView();
 
+	if( settingsFileArg.isSet() )
+		pController->openFile( settingsFileArg.getValue() );
+
 	return app.exec();
 }
