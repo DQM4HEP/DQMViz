@@ -432,16 +432,11 @@ void DQMRootWidget::updateMonitorElement(DQMGuiMonitorElement *pNewGuiMonitorEle
 {
 	DQMGuiMonitorElement *pCurrentGuiMonitorElement = this->getCurrentMonitorElement();
 
-	if(pCurrentGuiMonitorElement == pNewGuiMonitorElement)
-		return;
-
-	if(NULL != pCurrentGuiMonitorElement)
+	if(NULL != pCurrentGuiMonitorElement && pCurrentGuiMonitorElement == pNewGuiMonitorElement)
 	{
 		QObject::disconnect(pCurrentGuiMonitorElement, SIGNAL(destroyed()), this, SLOT(removeCanvas()));
 		QObject::disconnect(pCurrentGuiMonitorElement, SIGNAL(updated()), this, SLOT(redraw()));
 	}
-
-	m_pCurrentMonitorElement = pNewGuiMonitorElement;
 
 	if(pNewGuiMonitorElement)
 	{
@@ -453,6 +448,8 @@ void DQMRootWidget::updateMonitorElement(DQMGuiMonitorElement *pNewGuiMonitorEle
 		pCanvas->setWindowTitle(pNewGuiMonitorElement->getMonitorElement()->getTitle().c_str());
 		pCanvas->setWindowIcon(pCanvas->getMonitoring()->getController()->getIcon(pNewGuiMonitorElement->getMonitorElement()->getQuality()));
 	}
+
+	m_pCurrentMonitorElement = pNewGuiMonitorElement;
 }
 
 } 
