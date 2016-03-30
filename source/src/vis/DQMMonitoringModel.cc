@@ -65,19 +65,19 @@ DQMMonitoring *DQMMonitoringModel::getMonitoring() const
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitoringModel::updateMonitorElement(DQMMonitorElement *pMonitorElement)
+void DQMMonitoringModel::updateMonitorElement(DQMMonitorElementPtr &monitorElement)
 {
-	if(!pMonitorElement)
+	if(!monitorElement)
 		return;
 
 	for(DQMGuiMonitorElementList::iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;
 			endIter != iter ; ++iter)
 	{
-		if((*iter)->equals(pMonitorElement))
+		if((*iter)->equals(monitorElement))
 		{
 			// replace it (swap)
 			DQMGuiMonitorElement *pGuiMonitorElement = *iter;
-			pGuiMonitorElement->update(pMonitorElement);
+			pGuiMonitorElement->update(monitorElement);
 
 			// notify view
 			this->getMonitoring()->getView()->getMonitorElementView()->updateMonitorElement(pGuiMonitorElement);
@@ -87,7 +87,7 @@ void DQMMonitoringModel::updateMonitorElement(DQMMonitorElement *pMonitorElement
 	}
 
 	// create a new one
-	DQMGuiMonitorElement *pGuiMonitorElement = this->createGuiMonitorElement(pMonitorElement);
+	DQMGuiMonitorElement *pGuiMonitorElement = this->createGuiMonitorElement(monitorElement);
 
 	// register it
 	m_monitorElementList.push_back(pGuiMonitorElement);
@@ -118,7 +118,8 @@ void DQMMonitoringModel::updateMonitorElement(DQMGuiMonitorElement *pMonitorElem
 	}
 	else
 	{
-		pFindMonitorElement->update(pMonitorElement->getMonitorElement());
+		DQMMonitorElementPtr monitorElement = pMonitorElement->getMonitorElement();
+		pFindMonitorElement->update(monitorElement);
 
 		// notify view
 		this->getMonitoring()->getView()->getMonitorElementView()->updateMonitorElement(pMonitorElement);
@@ -240,14 +241,12 @@ bool DQMMonitoringModel::monitorElementExists(DQMGuiMonitorElement *pMonitorElem
 
 //-------------------------------------------------------------------------------------------------
 
-DQMGuiMonitorElement *DQMMonitoringModel::createGuiMonitorElement(DQMMonitorElement *pMonitorElement) const
+DQMGuiMonitorElement *DQMMonitoringModel::createGuiMonitorElement(DQMMonitorElementPtr &monitorElement) const
 {
-	if(!pMonitorElement)
+	if(NULL == monitorElement)
 		return NULL;
 
-	DQMGuiMonitorElement *pGuiMonitorElement = new DQMGuiMonitorElement(pMonitorElement);
-
-	return pGuiMonitorElement;
+	return new DQMGuiMonitorElement(monitorElement);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -347,11 +346,11 @@ void DQMMonitoringModel::loadMonitorElementInfoList(const std::string &collector
 DQMGuiMonitorElement *DQMMonitoringModel::createGuiMonitorElement(const std::string &collectorName, const std::string &moduleName,
 			const std::string &fullPath, const std::string &name) const
 {
-	DQMMonitorElement *pMonitorElement = new DQMMonitorElement(NO_ELEMENT_TYPE, name, "", moduleName);
-	pMonitorElement->setCollectorName(collectorName);
-	pMonitorElement->setPath(DQMPath(fullPath));
+	DQMMonitorElementPtr monitorElement = std::make_shared<DQMMonitorElement>(NO_ELEMENT_TYPE, name, "", moduleName);
+	monitorElement->setCollectorName(collectorName);
+	monitorElement->setPath(DQMPath(fullPath));
 
-	return this->createGuiMonitorElement(pMonitorElement);
+	return this->createGuiMonitorElement(monitorElement);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -34,8 +34,8 @@
 namespace dqm4hep
 {
 
-DQMGuiMonitorElement::DQMGuiMonitorElement(DQMMonitorElement *pMonitorElement) :
-		m_pMonitorElement(pMonitorElement)
+DQMGuiMonitorElement::DQMGuiMonitorElement(DQMMonitorElementPtr &monitorElement) :
+		m_pMonitorElement(monitorElement)
 {
 	/* nop */
 }
@@ -44,49 +44,44 @@ DQMGuiMonitorElement::DQMGuiMonitorElement(DQMMonitorElement *pMonitorElement) :
 
 DQMGuiMonitorElement::~DQMGuiMonitorElement()
 {
-	if(NULL != m_pMonitorElement)
-		delete m_pMonitorElement;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMGuiMonitorElement::update(DQMMonitorElement *pMonitorElement)
+void DQMGuiMonitorElement::update(DQMMonitorElementPtr &monitorElement)
 {
-	if(m_pMonitorElement == pMonitorElement)
+	if(m_pMonitorElement == monitorElement)
 		return;
 
-	if(m_pMonitorElement)
+	if(NULL != m_pMonitorElement)
 	{
-		if(pMonitorElement && m_pMonitorElement->getObject())
+		if(NULL != monitorElement && m_pMonitorElement->getObject())
 		{
 			// save previous state
-
 			const std::string &drawOption(m_pMonitorElement->getDrawOption());
-			pMonitorElement->setDrawOption(drawOption);
+			monitorElement->setDrawOption(drawOption);
 		}
-
-		delete m_pMonitorElement;
 	}
 
-	m_pMonitorElement = pMonitorElement;
+	m_pMonitorElement = monitorElement;
 
 	emit updated();
 }
 
 //-------------------------------------------------------------------------------------------------
 
-bool DQMGuiMonitorElement::equals(DQMMonitorElement *pMonitorElement) const
+bool DQMGuiMonitorElement::equals(DQMMonitorElementPtr &monitorElement) const
 {
-	if(NULL == pMonitorElement)
+	if(NULL == monitorElement)
 		return false;
 
 	if(NULL == m_pMonitorElement)
 		return false;
 
-	const DQMPath &path = pMonitorElement->getPath();
-	const std::string &moduleName = pMonitorElement->getModuleName();
-	const std::string &name = pMonitorElement->getName();
-	const std::string &collectorName = pMonitorElement->getCollectorName();
+	const DQMPath &path = monitorElement->getPath();
+	const std::string &moduleName = monitorElement->getModuleName();
+	const std::string &name = monitorElement->getName();
+	const std::string &collectorName = monitorElement->getCollectorName();
 
 	bool samePath =          (path          == this->getMonitorElement()->getPath());
 	bool sameModuleName =    (moduleName    == this->getMonitorElement()->getModuleName());
@@ -118,7 +113,7 @@ bool DQMGuiMonitorElement::equals(DQMGuiMonitorElement *pGuiMonitorElement) cons
 
 //-------------------------------------------------------------------------------------------------
 
-DQMMonitorElement *DQMGuiMonitorElement::getMonitorElement() const
+DQMMonitorElementPtr DQMGuiMonitorElement::getMonitorElement() const
 {
 	return m_pMonitorElement;
 }
@@ -127,7 +122,7 @@ DQMMonitorElement *DQMGuiMonitorElement::getMonitorElement() const
 
 void DQMGuiMonitorElement::setDrawOption(const std::string &drawOption)
 {
-	if(m_pMonitorElement)
+	if(NULL != m_pMonitorElement)
 	{
 		m_pMonitorElement->setDrawOption(drawOption);
 		emit updated();
@@ -138,7 +133,7 @@ void DQMGuiMonitorElement::setDrawOption(const std::string &drawOption)
 
 void DQMGuiMonitorElement::setDescription(const std::string &description)
 {
-	if(m_pMonitorElement)
+	if(NULL != m_pMonitorElement)
 	{
 		m_pMonitorElement->setDescription(description);
 		emit updated();
@@ -149,7 +144,7 @@ void DQMGuiMonitorElement::setDescription(const std::string &description)
 
 void DQMGuiMonitorElement::setQuality(DQMQuality quality)
 {
-	if(m_pMonitorElement)
+	if(NULL != m_pMonitorElement)
 	{
 		m_pMonitorElement->setQuality(quality);
 		emit updated();

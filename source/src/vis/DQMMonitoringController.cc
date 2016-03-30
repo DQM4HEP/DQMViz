@@ -353,7 +353,10 @@ void DQMMonitoringController::receiveMonitorElementPublication(const DQMPublicat
 		std::string moduleName = iter->first;
 
 		for(int i=0 ; i<iter->second.size() ; i++)
-			this->getMonitoring()->getModel()->updateMonitorElement(iter->second.at(i));
+		{
+			DQMMonitorElementPtr monitorElement = iter->second.at(i);
+			this->getMonitoring()->getModel()->updateMonitorElement(monitorElement);
+		}
 	}
 }
 

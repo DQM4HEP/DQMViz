@@ -68,7 +68,7 @@ public slots:
 	/** Update the monitor element in the model
 	 *  Add or replace if exists
 	 */
-	virtual void updateMonitorElement(DQMMonitorElement *pMonitorElement);
+	virtual void updateMonitorElement(DQMMonitorElementPtr &monitorElement);
 
 	/** Update the monitor element in the model
 	 *  Add or replace if exists
@@ -100,7 +100,7 @@ public:
 	 *  The created monitor element is not registered in the model.
 	 *  Use updateMonitorElement(elt) to register it
 	 */
-	virtual DQMGuiMonitorElement *createGuiMonitorElement(DQMMonitorElement *pMonitorElement) const;
+	virtual DQMGuiMonitorElement *createGuiMonitorElement(DQMMonitorElementPtr &monitorElement) const;
 
 	/**
 	 */

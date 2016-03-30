@@ -50,7 +50,7 @@ class DQMGuiMonitorElement : public QObject
 public:
 	/** Constructor with a monitoring instance
 	 */
-	DQMGuiMonitorElement(DQMMonitorElement *pMonitorElement);
+	DQMGuiMonitorElement(DQMMonitorElementPtr &pMonitorElement);
 
 	/** Destructor
 	 */
@@ -58,15 +58,15 @@ public:
 
 	/** Get the wrapped monitor element
 	 */
-	DQMMonitorElement *getMonitorElement() const;
+	DQMMonitorElementPtr getMonitorElement() const;
 
 	/** Update the gui monitor element with a new monitor element
 	 */
-	void update(DQMMonitorElement *pMonitorElement);
+	void update(DQMMonitorElementPtr &monitorElement);
 
 	/** Whether the two monitor elements area equal
 	 */
-	bool equals(DQMMonitorElement *pMonitorElement) const;
+	bool equals(DQMMonitorElementPtr &monitorElement) const;
 
 	/** Whether the two monitor elements area equal
 	 */
@@ -91,7 +91,7 @@ signals:
 
 protected:
 
-	DQMMonitorElement            *m_pMonitorElement;
+	DQMMonitorElementPtr            m_pMonitorElement;
 };
 
 typedef std::vector<DQMGuiMonitorElement*> DQMGuiMonitorElementList;

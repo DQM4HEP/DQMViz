@@ -180,43 +180,43 @@ void DQMMonitorElementInfoWidget::fillInfos(DQMGuiMonitorElement *pGuiMonitorEle
 	if(NULL == pGuiMonitorElement)
 		return;
 
-	DQMMonitorElement *pMonitorElement = pGuiMonitorElement->getMonitorElement();
+	DQMMonitorElementPtr monitorElement = pGuiMonitorElement->getMonitorElement();
 
-	if(NULL == pMonitorElement)
+	if(NULL == monitorElement)
 		return;
 
 	//
 	// Global infos
 	//
 	// name
-	m_pMonitorElementNameLabel->setText(QString(pMonitorElement->getName().c_str()));
+	m_pMonitorElementNameLabel->setText(QString(monitorElement->getName().c_str()));
 
 	//title
-	m_pMonitorElementTitleLabel->setText(QString(pMonitorElement->getTitle().c_str()));
+	m_pMonitorElementTitleLabel->setText(QString(monitorElement->getTitle().c_str()));
 
 	// type
-	m_pMonitorElementTypeLabel->setText(QString(monitorElementTypeToString(pMonitorElement->getType()).c_str()));
+	m_pMonitorElementTypeLabel->setText(QString(monitorElementTypeToString(monitorElement->getType()).c_str()));
 
 	// reset policy
-	m_pMonitorElementResetPolicyLabel->setText(QString(resetPolicyToString(pMonitorElement->getResetPolicy()).c_str()));
+	m_pMonitorElementResetPolicyLabel->setText(QString(resetPolicyToString(monitorElement->getResetPolicy()).c_str()));
 
 	// description
 	m_pMonitorElementDescriptionTextEdit->clear();
-	m_pMonitorElementDescriptionTextEdit->append(QString(pMonitorElement->getDescription().c_str()));
+	m_pMonitorElementDescriptionTextEdit->append(QString(monitorElement->getDescription().c_str()));
 
 	// draw option
-	m_pMonitorElementDrawOptionLabel->setText(QString(pMonitorElement->getDrawOption().c_str()));
+	m_pMonitorElementDrawOptionLabel->setText(QString(monitorElement->getDrawOption().c_str()));
 
 	// run number
-	m_pMonitorElementRunNumberLabel->setText(QString::number(pMonitorElement->getRunNumber()));
+	m_pMonitorElementRunNumberLabel->setText(QString::number(monitorElement->getRunNumber()));
 
 	// full path
-	m_pMonitorElementFullPathLabel->setText(QString(pMonitorElement->getPath().getPath().c_str()));
+	m_pMonitorElementFullPathLabel->setText(QString(monitorElement->getPath().getPath().c_str()));
 
 	//
 	// Q tests
 	//
-	m_qualityTestResultMap = pMonitorElement->getQualityTestResults();
+	m_qualityTestResultMap = monitorElement->getQualityTestResults();
 	m_pQTestsComboBox->clear();
 
 	unsigned int nSuccess = 0;
