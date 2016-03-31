@@ -19,7 +19,7 @@ INCLUDE( CheckCXXCompilerFlag )
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 
 IF( COMPILER_SUPPORTS_CXX11 )
-	LIST( APPEND CMAKE_CXX_FLAGS "-std=c++11" )
+  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ELSE()
 	MESSAGE( SEND_ERROR "DQMCore requires C++11 support. Please upgrade your compiler !" )
 ENDIF()
@@ -116,14 +116,14 @@ IF( INSTALL_DOC )
         MESSAGE( "Please install doxygen or set INSTALL_DOC to OFF" )
         MESSAGE( "" )
     ENDIF()
-    
+
 ENDIF()
 
 
-# ---- Generate DQMVizConfig.h 
+# ---- Generate DQMVizConfig.h
 CONFIGURE_FILE( "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.h.cmake.in"
     "${PROJECT_SOURCE_DIR}/source/include/${PROJECT_NAME}Config.h" @ONLY )
-    
+
 
 # ----- Add source directory -----
 ADD_SUBDIRECTORY( ./source )
