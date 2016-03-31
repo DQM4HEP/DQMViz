@@ -333,7 +333,7 @@ void DQMRunControlWidget::startNewRun()
 
         THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, m_pRunControlService->startNewRun(pRun));
 
-        time_t startTime = m_pRunControlService->getCurrentRun()->getStartTime();
+        time_t startTime = std::chrono::system_clock::to_time_t(m_pRunControlService->getCurrentRun()->getStartTime());
         std::string startTimeStdStr;
         DQMCoreTool::timeToHMS(startTime, startTimeStdStr);
 
