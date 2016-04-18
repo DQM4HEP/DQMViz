@@ -227,6 +227,7 @@ void DQMMonitoringView::buildCentralView()
 	m_pMainWindow->setCentralWidget(pMainWidget);
 
 	QWidget *pLeftViewWidget = new QWidget();
+	pLeftViewWidget->setMinimumWidth(300);
 	pLeftViewWidget->setLayout(new QVBoxLayout());
 
 
