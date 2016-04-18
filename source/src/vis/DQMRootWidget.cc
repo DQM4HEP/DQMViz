@@ -160,7 +160,8 @@ void DQMRootWidget::draw(DQMGuiMonitorElement *pMonitorElement)
 		pHistogram->SetStats(0);
 	}
 
-	this->cd();
+	this->GetCanvas()->cd();
+	this->GetCanvas()->Clear();
 	pObject->Draw(drawOption.c_str());
 	gPad->Update();
 	this->postDraw();
