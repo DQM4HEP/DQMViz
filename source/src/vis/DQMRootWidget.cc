@@ -40,6 +40,8 @@
 
 #include <TImage.h>
 #include <TH1.h>
+#include <TPaveStats.h>
+#include <TStyle.h>
 
 #include <QAction>
 #include <QApplication>
@@ -154,16 +156,12 @@ void DQMRootWidget::draw(DQMGuiMonitorElement *pMonitorElement)
 	TObject *pObject = pMonitorElement->getMonitorElement()->getObject();
 	const std::string &drawOption(pMonitorElement->getMonitorElement()->getDrawOption());
 
-	if(pMonitorElement->getMonitorElement()->isHistogram())
-	{
-		TH1 *pHistogram = dynamic_cast<TH1*>(pObject);
-		pHistogram->SetStats(0);
-	}
+	gStyle->SetStatColor(kGray);
 
 	this->GetCanvas()->cd();
 	this->GetCanvas()->Clear();
 	pObject->Draw(drawOption.c_str());
-	gPad->Update();
+	this->GetCanvas()->Update();
 	this->postDraw();
 
 	this->updateMonitorElement(pMonitorElement);
