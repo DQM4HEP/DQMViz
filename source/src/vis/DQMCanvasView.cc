@@ -101,7 +101,7 @@ DQMCanvasView::DQMCanvasView(DQMMonitoring *pMonitoring, QWidget *pParent) :
 	this->createCanvasArea("Canvas area");
 
 	connect(m_pTabWidget, SIGNAL(tabCloseRequested(int)), this, SLOT(removeCanvasArea(int)));
-	connect(pButton, SIGNAL(clicked()), this, SLOT(createCanvasArea()));
+	connect(pButton, SIGNAL(clicked()), this, SLOT(createCanvasAreaAndSetCurrent()));
 
 	installEventFilter(this);
 }
@@ -377,6 +377,7 @@ void DQMCanvasView::createCanvasAreaAndSetCurrent(const std::string &areaName)
 {
 	this->createCanvasArea(areaName);
 	this->setCurrentCanvasArea(m_pTabWidget->count()-1);
+	this->renameCanvasAreaFromInputDialog(m_pTabWidget->count()-1);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -504,7 +505,7 @@ QMenu *DQMCanvasView::createContextMenu() const
 	QAction *pRenameAreaAction = pContextMenu->addAction("Rename area", this, SLOT(handleRenameAreaActionTriggered()));
 	QAction *pRemoveAreaAction = pContextMenu->addAction("Remove area", this, SLOT(handleRemoveAreaActionTriggered()));
 	QAction *pRemoveAllAreasAction = pContextMenu->addAction("Remove all areas", this, SLOT(clear()));
-	QAction *pCreateNewAreaAction = pContextMenu->addAction("Create new area", this, SLOT(createCanvasArea()));
+	QAction *pCreateNewAreaAction = pContextMenu->addAction("Create new area", this, SLOT(createCanvasAreaAndSetCurrent()));
 	QAction *pClearAreaAction = pContextMenu->addAction("Clear area", this, SLOT(handleClearAreaActionTriggered()));
 	QAction *pSaveAsAction = pContextMenu->addAction("Save as", this, SLOT(handleSaveAsActionTriggered()));
 
