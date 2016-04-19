@@ -112,7 +112,20 @@ void DQMRootWidget::mouseReleaseEvent(QMouseEvent *e)
 
 void DQMRootWidget::postDraw()
 {
+	// fake update triggered by object resize
+	QSize currentSize = size();
+
+	currentSize.setHeight(currentSize.height()+1);
+	currentSize.setWidth(currentSize.width()+1);
+	resize(currentSize);
+
+	currentSize.setHeight(currentSize.height()-1);
+	currentSize.setWidth(currentSize.width()-1);
+	resize(currentSize);
+
+	GetCanvas()->Modified();
 	GetCanvas()->Resize();
+	GetCanvas()->Update();
 	Refresh();
 }
 
@@ -121,8 +134,11 @@ void DQMRootWidget::postDraw()
 void DQMRootWidget::drawNoVis()
 {
 	TImage *pNoVisImage = this->getNoVisImage();
+
 	this->GetCanvas()->cd();
+	this->GetCanvas()->Clear();
 	pNoVisImage->Draw();
+	this->GetCanvas()->Update();
 	this->postDraw();
 	m_pCurrentMonitorElement = NULL;
 }
