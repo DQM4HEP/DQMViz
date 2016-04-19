@@ -36,6 +36,7 @@
 // -- qt headers
 #include <QObject>
 #include <QMainWindow>
+#include <QPushButton>
 
 namespace dqm4hep
 {
@@ -126,6 +127,7 @@ protected:
 	DQMCanvasView              *m_pCanvasView;            ///< The canvas view to display monitor elements.
 	DQMMonitorElementView      *m_pMonitorElementView;    ///< The monitor element view to display the element hierarchy.
 	QMainWindow                *m_pMainWindow;            ///< The main window containing the whole view.
+	QPushButton                *m_pAutoUpdateButton;      ///< The push button to start/stop auto queries to collectors
 };
 
 } 

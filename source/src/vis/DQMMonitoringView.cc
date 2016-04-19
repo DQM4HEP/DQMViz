@@ -235,8 +235,8 @@ void DQMMonitoringView::buildCentralView()
 	QWidget *pUpdateButtonAreaWidget = new QWidget();
 	pUpdateButtonAreaWidget->setLayout(new QHBoxLayout());
 
-	QPushButton *pAutoUpdateButton = new QPushButton("Start update");
-	pUpdateButtonAreaWidget->layout()->addWidget(pAutoUpdateButton);
+	m_pAutoUpdateButton = new QPushButton("Start update");
+	pUpdateButtonAreaWidget->layout()->addWidget(m_pAutoUpdateButton);
 
 	QPushButton *pUpdateButton = new QPushButton("Update");
 	pUpdateButtonAreaWidget->layout()->addWidget(pUpdateButton);
@@ -274,7 +274,7 @@ void DQMMonitoringView::buildCentralView()
 	m_pCanvasView = new DQMCanvasView(m_pMonitoring);
 	pMainWidget->addWidget(m_pCanvasView);
 
-	connect(pAutoUpdateButton, SIGNAL(clicked()), this, SLOT(handleAutoUpdateButtonClicked()));
+	connect(m_pAutoUpdateButton, SIGNAL(clicked()), this, SLOT(handleAutoUpdateButtonClicked()));
 	connect(pUpdateButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(querySubscribedMonitorElements()));
 	connect(pClearButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(clearMonitoring()));
 	connect(pBrowseButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(openBrowser()));
@@ -309,6 +309,9 @@ void DQMMonitoringView::clear()
 {
 	m_pMonitorElementView->clear();
 	m_pCanvasView->clear();
+
+	this->getMonitoring()->getController()->setUpdateMode(false);
+	m_pAutoUpdateButton->setText("Start update");
 }
 
 //-------------------------------------------------------------------------------------------------
