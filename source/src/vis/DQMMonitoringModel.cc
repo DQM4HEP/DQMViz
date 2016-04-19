@@ -155,6 +155,40 @@ void DQMMonitoringModel::removeMonitorElement(DQMGuiMonitorElement *pMonitorElem
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitoringModel::removeMonitorElement(const std::string &collectorName, const std::string &moduleName,
+		const std::string &fullPath, const std::string &name)
+{
+
+	for(DQMGuiMonitorElementList::iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;
+			endIter != iter ; ++iter)
+	{
+		const std::string &meCollectorName = (*iter)->getMonitorElement()->getCollectorName();
+		const DQMPath     &mePath = (*iter)->getMonitorElement()->getPath();
+		const std::string &meModuleName = (*iter)->getMonitorElement()->getModuleName();
+		const std::string &meName = (*iter)->getMonitorElement()->getName();
+
+		bool sameCollectorName = (collectorName == meCollectorName);
+		bool samePath =          (fullPath          == mePath);
+		bool sameModuleName =    (moduleName    == meModuleName);
+		bool sameName =          (name          == meName);
+
+		if(sameCollectorName && samePath && sameModuleName && sameName)
+		{
+			DQMGuiMonitorElement *pGuiMonitorElement = *iter;
+
+			// remove it
+			m_monitorElementList.erase(iter);
+			pGuiMonitorElement->deleteLater();
+
+			this->getMonitoring()->getView()->getMonitorElementView()->removeMonitorElement(pGuiMonitorElement);
+
+			break;
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMMonitoringModel::clear()
 {
 	for(DQMGuiMonitorElementList::iterator iter = m_monitorElementList.begin(), endIter = m_monitorElementList.end() ;

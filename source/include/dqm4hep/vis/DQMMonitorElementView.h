@@ -188,6 +188,11 @@ public slots:
 	 */
 	void uncheckSelectedMonitorElements();
 
+	/** Remove all selected items from the view
+	 *  Notifies the model to remove the corresponding elements
+	 */
+	void removeSelectedItems();
+
 private:
 	/** Create a directory and set pTreeItem as parent item.
 	 *
@@ -246,6 +251,10 @@ private slots:
 	/**
 	 */
 	void queryUpdate();
+
+	/**
+	 */
+	void openSelectedMonitorElementInfo();
 
 private:
 

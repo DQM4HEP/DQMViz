@@ -685,6 +685,78 @@ void DQMMonitorElementNavigator::uncheckSelectedMonitorElements()
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitorElementNavigator::removeSelectedItems()
+{
+	// Handle selected items instead of only the current item
+	QList<QTreeWidgetItem *> selectedItems = this->selectedItems();
+
+	if( selectedItems.size() != 1 )
+		return;
+
+	QTreeWidgetItem *pTreeWidgetItem = selectedItems.at(0);
+	QSet<QTreeWidgetItem *> monitorElementItems;
+	bool isDirectory = false;
+
+	if( this->isMonitorElementItem( pTreeWidgetItem ) )
+	{
+		monitorElementItems << pTreeWidgetItem;
+		std::cout << "Item is element" << std::endl;
+	}
+	else if( this->isDirectoryItem(pTreeWidgetItem) )
+	{
+		QList<QTreeWidgetItem *> monitorElementItemList;
+		this->getRecursiveMonitorElements(pTreeWidgetItem, monitorElementItemList, false);
+		monitorElementItems += QSet<QTreeWidgetItem *>::fromList(monitorElementItemList);
+		std::cout << "Item is dir" << std::endl;
+		isDirectory = true;
+	}
+
+	QSet<QTreeWidgetItem*>::iterator iter = monitorElementItems.begin();
+
+	while(iter != monitorElementItems.end())
+	{
+		QTreeWidgetItem *pTreeWidgetItem = *iter;
+
+		// unsubscribe to element before to remove it
+		pTreeWidgetItem->setCheckState(0, Qt::Unchecked);
+
+		QString collectorName(this->getCollectorName());
+		QString moduleName(this->getModuleName(pTreeWidgetItem));
+		QString fullPathName(this->getFullPathName(pTreeWidgetItem));
+		QString monitorElementName(pTreeWidgetItem->text(0));
+
+		// removed it before removing the element in the model
+		if( pTreeWidgetItem->parent() )
+			pTreeWidgetItem->parent()->removeChild(pTreeWidgetItem);
+
+		delete pTreeWidgetItem;
+
+		this->getMonitoring()->getModel()->removeMonitorElement(
+				collectorName.toStdString(),
+				moduleName.toStdString(),
+				fullPathName.toStdString(),
+				monitorElementName.toStdString() );
+
+		++iter;
+	}
+
+	if( isDirectory )
+	{
+		// remove child elements
+		this->clear( pTreeWidgetItem );
+
+		if( pTreeWidgetItem->parent() )
+		{
+			pTreeWidgetItem->parent()->removeChild(pTreeWidgetItem);
+			delete pTreeWidgetItem;
+		}
+		else
+			delete this->takeTopLevelItem(this->indexOfTopLevelItem(pTreeWidgetItem));
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
 QTreeWidgetItem *DQMMonitorElementNavigator::mkdir(QTreeWidgetItem *pTreeItem, const QString &dirName)
 {
 	for(int i=0 ; i<pTreeItem->childCount() ; i++)
@@ -744,8 +816,6 @@ bool DQMMonitorElementNavigator::dirExists(QTreeWidgetItem *pTreeItem, const QSt
 
 void DQMMonitorElementNavigator::clear(QTreeWidgetItem *pTreeItem) const
 {
-	NOTIFY_METHOD_CALLED
-
 	while(pTreeItem->childCount() != 0)
 	{
 		QTreeWidgetItem *pChildItem = pTreeItem->child(0);
@@ -819,10 +889,24 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
         drawInTabActionList << pDrawInTabAction;
     }
 
-    QAction *pShowInfoAction = contextMenu.addAction("Show info");
+    QAction *pShowInfoAction = contextMenu.addAction("Show info", this, SLOT(openSelectedMonitorElementInfo()));
+    QAction *pRemoveAction = contextMenu.addAction("Remove", this, SLOT(removeSelectedItems()));
     contextMenu.addSeparator();
-    QAction *pCompareWithAction = contextMenu.addAction("Compare with ...");
-    contextMenu.addSeparator();
+
+    QList<QTreeWidgetItem *> selectedItems = this->selectedItems();
+    QTreeWidgetItem *pSelectedItem = 0;
+
+    if( selectedItems.size() == 1 )
+    {
+    	pSelectedItem = selectedItems.at(0);
+
+    	if( ! this->isMonitorElementItem( pSelectedItem ) )
+    		pShowInfoAction->setEnabled( false );
+    }
+    else
+    {
+    	pRemoveAction->setEnabled(false);
+    }
 
     QAction *pCheckAllAction = contextMenu.addAction("Check all", this, SLOT(checkAllMonitorElements()));
     QAction *pCheckSelectedAction = contextMenu.addAction("Check selected", this, SLOT(checkSelectedMonitorElements()));
@@ -1186,6 +1270,33 @@ void DQMMonitorElementNavigator::queryUpdate()
 	}
 
 	this->getMonitoring()->getController()->queryUpdate(monitorElementList);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementNavigator::openSelectedMonitorElementInfo()
+{
+	QList<QTreeWidgetItem *> selectedItems = this->selectedItems();
+
+	if( selectedItems.size() != 1 )
+		return;
+
+	QTreeWidgetItem *pTreeWidgetItem = selectedItems.at(0);
+
+	QString collectorName(this->getCollectorName());
+	QString moduleName(this->getModuleName(pTreeWidgetItem));
+	QString fullPathName(this->getFullPathName(pTreeWidgetItem));
+	QString monitorElementName(pTreeWidgetItem->text(0));
+
+	DQMGuiMonitorElement *pMonitorElement =
+			this->getMonitoring()->getModel()->findMonitorElement(
+					collectorName.toStdString(),
+					moduleName.toStdString(),
+					fullPathName.toStdString(),
+					monitorElementName.toStdString());
+
+	if( pMonitorElement )
+		this->getMonitoring()->getController()->openMonitorElementInfo(pMonitorElement);
 }
 
 //-------------------------------------------------------------------------------------------------

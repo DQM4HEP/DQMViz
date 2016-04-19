@@ -79,6 +79,11 @@ public slots:
 	 */
 	virtual void removeMonitorElement(DQMGuiMonitorElement *pMonitorElement);
 
+	/**
+	 */
+	virtual void removeMonitorElement(const std::string &collectorName, const std::string &moduleName,
+			const std::string &fullPath, const std::string &name);
+
 	/** Clear all the model contents
 	 */
 	void clear();
