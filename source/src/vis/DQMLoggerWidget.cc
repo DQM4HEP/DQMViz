@@ -27,25 +27,64 @@
 
 // -- dqm4hep
 #include "dqm4hep/vis/DQMLoggerWidget.h"
+#include "DQMVizConfig.h"
 
 // -- qt headers
-#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QScrollBar>
+#include <QPushButton>
+#include <QIcon>
 
 namespace dqm4hep
 {
 
+//    QIcon icon(QString(DQMViz_DIR) + "/icons/icon-arrow-down.png");
+
 DQMLoggerWidget::DQMLoggerWidget(QWidget *pParent) :
 		QGroupBox("Logging", pParent)
 {
-	setMaximumHeight(200);
-
-	QHBoxLayout *pLoggingLayout = new QHBoxLayout();
+	QVBoxLayout *pLoggingLayout = new QVBoxLayout();
 	setLayout(pLoggingLayout);
+
+
+	// collapse/expand button area
+	QHBoxLayout *pButtonLayout = new QHBoxLayout();
+	pLoggingLayout->addLayout(pButtonLayout);
+
+    QIcon icon(QString(DQMViz_DIR) + "/icons/icon-arrow-down.png");
+	m_pCollapseExpandButton = new QPushButton( icon, "");
+	m_pCollapseExpandButton->setFlat(true);
+	pButtonLayout->addWidget(m_pCollapseExpandButton);
+	pButtonLayout->setAlignment(m_pCollapseExpandButton, Qt::AlignLeft);
+
+	// main widget area
+	m_pCollapseExpandWidget = new QWidget();
+	pLoggingLayout->addWidget(m_pCollapseExpandWidget);
+
+	QVBoxLayout *pCollapseExpandLayout = new QVBoxLayout();
+	m_pCollapseExpandWidget->setLayout(pCollapseExpandLayout);
 
 	m_pLoggingWidget = new QTextEdit();
 	m_pLoggingWidget->setReadOnly(true);
-	pLoggingLayout->addWidget(m_pLoggingWidget);
+	pCollapseExpandLayout->addWidget(m_pLoggingWidget);
+
+	QPushButton *pClearButton = new QPushButton("Clear");
+	pCollapseExpandLayout->addWidget(pClearButton);
+	pCollapseExpandLayout->setAlignment(pClearButton, Qt::AlignRight);
+
+	connect(pClearButton, SIGNAL(clicked()), m_pLoggingWidget, SLOT(clear()));
+	connect(m_pCollapseExpandButton, SIGNAL(clicked()), this, SLOT(collapseExpand()));
+
+	// trigger a collapse event
+	m_expanded = true;
+	collapseExpand();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+QTextEdit *DQMLoggerWidget::logView() const
+{
+	return m_pLoggingWidget;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -116,6 +155,32 @@ std::string DQMLoggerWidget::getLogMessageHead(LogLevel level) const
 	default:
 		return "";
 	}
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMLoggerWidget::collapseExpand()
+{
+	if( m_expanded ) // then collapse
+	{
+		m_pCollapseExpandWidget->hide();
+		QIcon icon(QString(DQMViz_DIR) + "/icons/icon-arrow-right.png");
+		m_pCollapseExpandButton->setIcon( icon );
+		m_expanded = false;
+
+		emit collapsed();
+	}
+	else  // then expand
+	{
+		m_pCollapseExpandWidget->show();
+		QIcon icon(QString(DQMViz_DIR) + "/icons/icon-arrow-down.png");
+		m_pCollapseExpandButton->setIcon( icon );
+		m_expanded = true;
+
+		emit expanded();
+	}
+
+	m_pCollapseExpandButton->clearFocus();
 }
 
 } 

@@ -24,6 +24,7 @@ QT4_WRAP_CPP (
     include/dqm4hep/vis/DQMMonitorElementView.h
     include/dqm4hep/vis/DQMGuiMonitorElementClient.h
     include/dqm4hep/vis/DQMJobInterface.h
+	include/dqm4hep/vis/DQMLoggerWidget.h
 	include/dqm4hep/vis/DQMJobInterfaceWidget.h
     include/dqm4hep/vis/DQMRunControlWidget.h
     include/dqm4hep/vis/DQMCanvas.h

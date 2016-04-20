@@ -32,6 +32,7 @@
 #include "dqm4hep/vis/DQMMonitoring.h"
 #include "dqm4hep/vis/DQMMonitorElementView.h"
 #include "dqm4hep/vis/DQMCanvasView.h"
+#include "dqm4hep/vis/DQMLoggerWidget.h"
 #include "DQMCoreConfig.h"
 #include "DQMVizConfig.h"
 
@@ -268,11 +269,20 @@ void DQMMonitoringView::buildCentralView()
 	pClearBrowseButtonAreaWidget->setMaximumHeight(50);
     pLeftViewWidget->layout()->addWidget(pClearBrowseButtonAreaWidget);
 
-
 	pMainWidget->addWidget(pLeftViewWidget);
 
+
+	// canvas area and logger widget
+	QWidget *pRightView = new QWidget();
+	pRightView->setLayout(new QVBoxLayout());
+	pMainWidget->addWidget(pRightView);
+
 	m_pCanvasView = new DQMCanvasView(m_pMonitoring);
-	pMainWidget->addWidget(m_pCanvasView);
+	pRightView->layout()->addWidget(m_pCanvasView);
+
+	m_pLoggerWidget = new DQMLoggerWidget();
+	m_pLoggerWidget->logView()->setMinimumHeight(200);
+	pRightView->layout()->addWidget(m_pLoggerWidget);
 
 	connect(m_pAutoUpdateButton, SIGNAL(clicked()), this, SLOT(handleAutoUpdateButtonClicked()));
 	connect(pUpdateButton, SIGNAL(clicked()), this->getMonitoring()->getController(), SLOT(querySubscribedMonitorElements()));
@@ -282,9 +292,23 @@ void DQMMonitoringView::buildCentralView()
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitoringView::log(const std::string &message)
+{
+	m_pLoggerWidget->log(MESSAGE, message);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitoringView::log(LogLevel level, const std::string &message)
+{
+	m_pLoggerWidget->log(level, message);
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMMonitoringView::buildStatusBar()
 {
-	this->getMainWindow()->statusBar()->showMessage("Welcome", 3000);
+//	this->getMainWindow()->statusBar()->showMessage("Welcome", 3000);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -293,6 +317,7 @@ void DQMMonitoringView::showView()
 {
 	this->buildView();
 	this->getMainWindow()->show();
+	this->log("Welcome !");
 }
 
 //-------------------------------------------------------------------------------------------------

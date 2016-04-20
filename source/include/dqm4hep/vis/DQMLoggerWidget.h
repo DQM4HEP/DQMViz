@@ -37,16 +37,18 @@
 #include <QGroupBox>
 #include <QColor>
 #include <QTextEdit>
+#include <QPushButton>
 
 namespace dqm4hep
 {
 
 /** DQMLoggerWidget class
  */ 
-class DQMLoggerWidget : public DQMLogger, public QGroupBox
+class DQMLoggerWidget : public QGroupBox, public DQMLogger
 {
-public:
+	Q_OBJECT
 
+public:
 	/** Constructor
      */
 	DQMLoggerWidget(QWidget *pParent = 0);
@@ -59,12 +61,29 @@ public:
 	 */
 	void log(LogLevel level, const std::string &message);
 
-private:
+	/** Get the log view where messages are logged
+	 */
+	QTextEdit *logView() const;
 
+private slots:
+	/** Collapse or expand the logger view depending on its state (collapsed/expanded)
+	 */
+	void collapseExpand();
+
+signals:
+	void expanded();
+	void collapsed();
+
+private:
 	Qt::GlobalColor getColor(LogLevel level) const;
 	std::string getLogMessageHead(LogLevel level) const;
-	QTextEdit                        *m_pLoggingWidget;       ///< the text widget used for logging
-}; 
+
+private:
+	QTextEdit                        *m_pLoggingWidget;         ///< The text widget used for logging
+	QWidget                          *m_pCollapseExpandWidget;  ///< The container widget to collapse/expand
+	QPushButton                      *m_pCollapseExpandButton;
+	bool                              m_expanded;
+};
 
 } 
 

@@ -100,8 +100,7 @@ void DQMMonitoringController::log(const std::string &message)
 
 void DQMMonitoringController::log(LogLevel level, const std::string &message)
 {
-	QString completeMessage = m_logLevelToTextMap.find(level).value() + message.c_str();
-	this->getMonitoring()->getView()->getMainWindow()->statusBar()->showMessage(completeMessage, 2000);
+	this->getMonitoring()->getView()->log(level, message);
 }
 
 //-------------------------------------------------------------------------------------------------

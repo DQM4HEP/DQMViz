@@ -50,7 +50,7 @@ class DQMCanvas;
 
 /** DQMMonitoringController class
  */ 
-class DQMMonitoringController : public QObject, public DQMLogger
+class DQMMonitoringController : public QObject
 {
 	Q_OBJECT
 
