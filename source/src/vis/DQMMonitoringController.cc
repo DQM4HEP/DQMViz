@@ -974,9 +974,13 @@ void DQMMonitoringController::saveAs(DQMCanvasArea *pCanvasArea)
     	if(!pCanvas)
     		continue;
 
-    	TCanvas *pSaveCanvas = pCanvas->getRootWidget()->GetCanvas();
-    	std::string objectName = pCanvas->getCurrentMonitorElement()->getMonitorElement()->getName();
-    	pFile->WriteTObject(pSaveCanvas, objectName.c_str());
+    	DQMGuiMonitorElement *pGuiMonitorElement = pCanvas->getCurrentMonitorElement();
+
+    	if( ! pGuiMonitorElement || ! pGuiMonitorElement->getMonitorElement() )
+    		continue;
+
+    	TObject *pObject = pGuiMonitorElement->getMonitorElement()->getObject();
+    	pFile->WriteTObject(pObject, pObject->GetName());
     }
 
     pFile->Close();
@@ -1039,8 +1043,19 @@ void DQMMonitoringController::saveAs(DQMCanvas *pCanvas)
 
     std::string realFileName = (baseFileName + extensionFileName).toStdString();
 
+    TFile *pFile = TFile::Open(realFileName.c_str(), "RECREATE");
+
     // save the canvas
-    pCanvas->getRootWidget()->GetCanvas()->SaveAs(realFileName.c_str());
+	DQMGuiMonitorElement *pGuiMonitorElement = pCanvas->getCurrentMonitorElement();
+
+	if( ! pGuiMonitorElement || ! pGuiMonitorElement->getMonitorElement() )
+		return;
+
+	TObject *pObject = pGuiMonitorElement->getMonitorElement()->getObject();
+	pFile->WriteTObject(pObject, pObject->GetName());
+
+	pFile->Close();
+	delete pFile;
 }
 
 //-------------------------------------------------------------------------------------------------
