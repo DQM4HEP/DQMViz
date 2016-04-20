@@ -36,6 +36,9 @@
 #include "dqm4hep/vis/DQMGuiMonitorElementClient.h"
 #include "dqm4hep/DQMMonitorElement.h"
 #include "dqm4hep/DQMLogging.h"
+#include "dqm4hep/DQMArchiver.h"
+#include "dqm4hep/DQMStorage.h"
+#include "dqm4hep/DQMDirectory.h"
 
 #include <QVBoxLayout>
 #include <QMenu>
@@ -44,6 +47,10 @@
 #include <QCommonStyle>
 #include <QTimer>
 #include <QApplication>
+#include <QFileDialog>
+
+#include "TFile.h"
+#include "TDirectory.h"
 
 namespace dqm4hep
 {
@@ -867,6 +874,80 @@ void DQMMonitorElementNavigator::getRecursiveMonitorElements(QTreeWidgetItem *pT
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMMonitorElementNavigator::exportAll()
+{
+	this->exportToRootFile(false);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementNavigator::exportChecked()
+{
+	this->exportToRootFile(true);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DQMMonitorElementNavigator::exportToRootFile(bool onlyChecked)
+{
+    QString fileName = QFileDialog::getSaveFileName(this->getMonitoring()->getView()->getMainWindow(), tr("Export to ROOT file"),
+                    QString(""),
+                    "ROOT files (*.root)");
+
+    if(fileName.isEmpty())
+    	return;
+
+    TFile *pFile = TFile::Open(fileName.toStdString().c_str(), "RECREATE");
+
+	for(int i=0 ; i<topLevelItemCount() ; i++)
+	{
+		QTreeWidgetItem *pModuleItem = topLevelItem(i);
+		QString moduleName(pModuleItem->text(0));
+
+		QList<QTreeWidgetItem*> monitorElements;
+		this->getRecursiveMonitorElements(pModuleItem, monitorElements, onlyChecked);
+
+		TDirectory *pModuleDirectory = pFile->mkdir( moduleName.toStdString().c_str() );
+
+		if( ! pModuleDirectory )
+			continue;
+
+		// fill the storage
+		DQMStorage storage;
+
+		for(int i = 0; i < monitorElements.count(); i++)
+		{
+			QTreeWidgetItem *pMonitorElementItem = monitorElements.at(i);
+
+			QString collectorName(this->getCollectorName());
+			QString moduleName(this->getModuleName(pMonitorElementItem));
+			QString fullPathName(this->getFullPathName(pMonitorElementItem));
+			QString monitorElementName(pMonitorElementItem->text(0));
+
+			DQMGuiMonitorElement *pMonitorElement =
+					this->getMonitoring()->getModel()->findMonitorElement(
+							collectorName.toStdString(),
+							moduleName.toStdString(),
+							fullPathName.toStdString(),
+							monitorElementName.toStdString());
+
+			if( ! pMonitorElement)
+				continue;
+
+			storage.addMonitorElement( pMonitorElement->getMonitorElement() );
+		}
+
+		DQMArchiver::recursiveFill(storage.getRootDirectory(), pModuleDirectory);
+	}
+
+	pFile->cd();
+	pFile->Write();
+	pFile->Close();
+	delete pFile;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
 {
     QPoint globalPos = this->mapToGlobal(point);
@@ -874,9 +955,8 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
     QMenu contextMenu;
 
     QMenu *pExportToRootMenu = contextMenu.addMenu("Export to ROOT File");
-    QAction *pExportAllAction = pExportToRootMenu->addAction("Export all");
-    QAction *pExportCheckedAction = pExportToRootMenu->addAction("Export checked");
-    QAction *pExportSelectedAction = pExportToRootMenu->addAction("Export selected");
+    QAction *pExportAllAction = pExportToRootMenu->addAction("Export all", this, SLOT(exportAll()));
+    QAction *pExportCheckedAction = pExportToRootMenu->addAction("Export checked", this, SLOT(exportChecked()));
     contextMenu.addSeparator();
 
     QAction *pUpdateAction = contextMenu.addAction("Update", this, SLOT(queryUpdate()));
@@ -926,12 +1006,12 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
     	pRemoveAction->setEnabled(false);
     }
 
-    QAction *pCheckAllAction = contextMenu.addAction("Check all", this, SLOT(checkAllMonitorElements()));
-    QAction *pCheckSelectedAction = contextMenu.addAction("Check selected", this, SLOT(checkSelectedMonitorElements()));
+    QAction *pCheckAllAction = contextMenu.addAction("Subscribe all", this, SLOT(checkAllMonitorElements()));
+    QAction *pCheckSelectedAction = contextMenu.addAction("Subscribe selected", this, SLOT(checkSelectedMonitorElements()));
     contextMenu.addSeparator();
 
-    QAction *pUncheckAllAction = contextMenu.addAction("Un-check all", this, SLOT(uncheckAllMonitorElements()));
-    QAction *pUncheckSelectedAction = contextMenu.addAction("Un-check selected", this, SLOT(uncheckSelectedMonitorElements()));
+    QAction *pUncheckAllAction = contextMenu.addAction("Un-subscribe all", this, SLOT(uncheckAllMonitorElements()));
+    QAction *pUncheckSelectedAction = contextMenu.addAction("Un-subscribe selected", this, SLOT(uncheckSelectedMonitorElements()));
 
     // process context menu
     contextMenu.exec(globalPos);

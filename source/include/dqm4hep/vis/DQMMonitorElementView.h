@@ -197,6 +197,18 @@ public slots:
 	 */
 	void removeSelectedItems();
 
+	/** Export the tree view in a root file
+	 */
+	void exportAll();
+
+	/**
+	 */
+	void exportChecked();
+
+	/**
+	 */
+	void exportToRootFile(bool onlyChecked = false);
+
 private:
 	/** Create a directory and set pTreeItem as parent item.
 	 *
