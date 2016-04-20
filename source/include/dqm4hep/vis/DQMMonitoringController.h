@@ -161,6 +161,10 @@ private slots:
 	 */
 	void receiveMonitorElementPublication(const DQMPublication &publication);
 
+	/** Qt slot to receive new available monitor elements from a collector
+	 */
+	void receiveAvailableMonitorElements(const DQMMonitorElementInfoList &infoList);
+
 	/** Send the list of subscribed elements to the collector.
 	 *  This is usually called when the server is restarted
 	 *  after a shutdown, a manual restart or a crash.

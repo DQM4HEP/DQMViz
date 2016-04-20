@@ -68,6 +68,10 @@ signals:
 	 */
 	void monitorElementPublicationReceived(const DQMPublication &);
 
+	/** Qt signal emitted when new monitor elements are available on collector side
+	 */
+	void monitorElementsAvailable(const DQMMonitorElementInfoList &);
+
 	/** Qt signal emitted when the client is connected
 	 */
 	void onMonitorElementClientConnect();
@@ -92,6 +96,7 @@ private:
 	void availableMonitorElementListReceived(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &/*infoList*/);
 	void monitorElementCollectorInfoReceived(DQMMonitorElementClient */*pClient*/, const DQMHostInfo &/*collectorInfo*/);
 	void monitorElementsReceived(DQMMonitorElementClient */*pClient*/, DQMPublication &/*publication*/);
+	void monitorElementsAvailable(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &/*infoList*/);
 
 private:
 	DQMMonitorElementClient           *m_pMonitorElementClient;

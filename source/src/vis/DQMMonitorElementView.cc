@@ -547,6 +547,24 @@ QList<QTreeWidgetItem*> DQMMonitorElementNavigator::getCheckedMonitorElements() 
 
 //-------------------------------------------------------------------------------------------------
 
+QList<QTreeWidgetItem*> DQMMonitorElementNavigator::getCheckedMonitorElements(const QString &moduleName) const
+{
+	QList<QTreeWidgetItem*> checkedMonitorElements;
+
+	for(int i=0 ; i<topLevelItemCount() ; i++)
+	{
+		if(this->topLevelItem(i)->text(0) == moduleName)
+		{
+			this->getRecursiveMonitorElements(this->topLevelItem(i), checkedMonitorElements, true);
+			break;
+		}
+	}
+
+	return checkedMonitorElements;
+}
+
+//-------------------------------------------------------------------------------------------------
+
 QList<QTreeWidgetItem*> DQMMonitorElementNavigator::getAllMonitorElementItems(const QString &moduleName) const
 {
 	QList<QTreeWidgetItem*> monitorElementItems;
@@ -1372,6 +1390,27 @@ QList<QTreeWidgetItem*> DQMMonitorElementView::getCheckedMonitorElements(const s
 		return checkedMonitorElements;
 
 	return pNavigator->getCheckedMonitorElements();
+}
+
+//-------------------------------------------------------------------------------------------------
+
+QList<QTreeWidgetItem*> DQMMonitorElementView::getCheckedMonitorElements(const std::string &collectorName, const std::string &moduleName) const
+{
+	DQMMonitorElementNavigator *pNavigator = NULL;
+
+	for(int i=0 ; i<m_pToolBox->count() ; i++)
+	{
+		if(m_pToolBox->itemText(i).toStdString() == collectorName)
+		{
+			pNavigator = qobject_cast<DQMMonitorElementNavigator*>(m_pToolBox->widget(i));
+			break;
+		}
+	}
+
+	if(NULL == pNavigator)
+		return QList<QTreeWidgetItem*>();
+
+	return pNavigator->getCheckedMonitorElements(moduleName.c_str());
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -79,6 +79,13 @@ void DQMGuiMonitorElementClient::monitorElementsReceived(DQMMonitorElementClient
 
 //-------------------------------------------------------------------------------------------------
 
+void DQMGuiMonitorElementClient::monitorElementsAvailable(DQMMonitorElementClient */*pClient*/, const DQMMonitorElementInfoList &infoList)
+{
+	emit monitorElementsAvailable(infoList);
+}
+
+//-------------------------------------------------------------------------------------------------
+
 void DQMGuiMonitorElementClient::onMonitorElementClientConnect(DQMMonitorElementClient */*pClient*/)
 {
 	emit onMonitorElementClientConnect();

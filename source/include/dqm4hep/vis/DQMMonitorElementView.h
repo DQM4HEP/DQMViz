@@ -163,6 +163,10 @@ public:
 	 */
 	QList<QTreeWidgetItem*> getCheckedMonitorElements() const;
 
+	/** Get the checked monitor element items for a target module
+	 */
+	QList<QTreeWidgetItem*> getCheckedMonitorElements(const QString &moduleName) const;
+
 	/** Get all monitor element items for a given module
 	 */
 	QList<QTreeWidgetItem*> getAllMonitorElementItems(const QString &moduleName) const;
@@ -297,6 +301,10 @@ public:
 	/**
 	 */
 	QList<QTreeWidgetItem*> getCheckedMonitorElements(const std::string &collectorName) const;
+
+	/**
+	 */
+	QList<QTreeWidgetItem*> getCheckedMonitorElements(const std::string &collectorName, const std::string &moduleName) const;
 
 	/**
 	 */

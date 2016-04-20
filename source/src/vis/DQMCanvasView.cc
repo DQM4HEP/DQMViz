@@ -377,7 +377,9 @@ void DQMCanvasView::createCanvasAreaAndSetCurrent(const std::string &areaName)
 {
 	this->createCanvasArea(areaName);
 	this->setCurrentCanvasArea(m_pTabWidget->count()-1);
-	this->renameCanvasAreaFromInputDialog(m_pTabWidget->count()-1);
+
+	if( areaName.empty() )
+		this->renameCanvasAreaFromInputDialog(m_pTabWidget->count()-1);
 }
 
 //-------------------------------------------------------------------------------------------------

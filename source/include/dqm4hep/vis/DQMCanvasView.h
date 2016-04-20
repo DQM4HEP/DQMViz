@@ -106,7 +106,8 @@ public slots:
 	 */
 	virtual void createCanvasArea(const std::string &areaName = "");
 
-	/** Create a canvas area and set it as current
+	/** Create a canvas area and set it as current.
+	 *  If the name is empty a popup will ask for an area name
 	 */
 	virtual void createCanvasAreaAndSetCurrent(const std::string &areaName = "");
 
