@@ -63,7 +63,7 @@ DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
     QWidget(pParent),
     m_pAutomaticModeButton(0)
 {
-    m_pJobIterface = new DQMJobInterface();
+    m_pJobInterface = new DQMJobInterface();
 
     QLayout *pMainLayout = new QVBoxLayout();
     setLayout(pMainLayout);
@@ -85,7 +85,7 @@ DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
 
     connect(m_pAutomaticModeButton, SIGNAL(clicked()), this, SLOT(handleAutomaticModeButtonClicked()));
     connect(m_pUpdatePeriodSpinBox, SIGNAL(valueChanged(int)), this, SLOT(handleAutomaticModeValueChanged(int)));
-    connect(m_pJobIterface, SIGNAL(statusReceived(const QString &)), this, SLOT(updateStatus(const QString &)));
+    connect(m_pJobInterface, SIGNAL(statusReceived(const QString &)), this, SLOT(updateStatus(const QString &)));
 
     QSpacerItem *p_HSpacer = new QSpacerItem(1, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
     pComboBoxLayout->addSpacerItem(p_HSpacer);
@@ -147,7 +147,7 @@ DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
 
 DQMJobInterfaceWidget::~DQMJobInterfaceWidget()
 {
-    delete m_pJobIterface;
+    delete m_pJobInterface;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -161,7 +161,7 @@ const std::string &DQMJobInterfaceWidget::getCurrentJsonFile() const
 
 DQMJobInterface *DQMJobInterfaceWidget::getJobInterface() const
 {
-    return m_pJobIterface;
+    return m_pJobInterface;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -333,8 +333,8 @@ void DQMJobInterfaceWidget::loadJsonFile(const std::string &fileName)
         }
     }
 
-    m_pJobIterface->loadJSON(fileName);
-    const Json::Value &root(m_pJobIterface->getRoot());
+    m_pJobInterface->loadJSON(fileName);
+    const Json::Value &root(m_pJobInterface->getRoot());
     loadJson(root);
 
     m_currentJsonFile = fileName;
@@ -357,212 +357,28 @@ void DQMJobInterfaceWidget::reloadJsonFile()
 void DQMJobInterfaceWidget::openLogFile()
 {
     QTreeWidgetItem* pSelectedItem = m_pTreeWidget->currentItem();
-    if (!pSelectedItem)
+
+    if ( ! pSelectedItem )
         return;
 
     QString pidStr = pSelectedItem->text(PID);
     QString jobName = pSelectedItem->text(NAME);
-    if (pidStr.isEmpty() || jobName.isEmpty())
+
+    if ( pidStr.isEmpty() || jobName.isEmpty() )
         return;
 
-    char hostName[1023];
-    gethostname(hostName, 1023);
     QString jobHostName = pSelectedItem->parent()->text(NAME);
+    pid_t pid = pidStr.toInt();
 
     QTextEdit *pLogFile = new QTextEdit();
-    //TODO Read from jsonFile!
-    QString fileName = "/tmp/dimjcPID" + pidStr + ".log";
 
-    QString titleStr = "LogFile " + fileName + " for program '" + jobName + "' on host '" + jobHostName + "'" ;
+    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
     pLogFile->setWindowTitle(titleStr);
     pLogFile->resize(700, 700);
     pLogFile->setAttribute(Qt::WA_DeleteOnClose, true);
 
-    // Job is running locally
-    if ( hostName == jobHostName )
-    {
-        QFile file(fileName);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        {
-            std::cout << " Error : could not open logFile, you may want to check access rights" << std::endl;
-            return;
-        }
-
-        QTextStream in(&file);
-        QString text;
-        text = in.readAll();
-        pLogFile->setText(text);
-        file.close();
-        pLogFile->show();
-    }
-    // else // Connect to the host through ssh
-    {
-        std::cout << " Access log through SSH is not yet implemented " << std::endl;
-        //TODO implement connection to host with libssh (see libssh API)
-
-         // Testing! Should be properly implemented in a separate class!
-        /*
-        ssh_session sshSession;
-        int verbosity = SSH_LOG_PROTOCOL;
-        int port = 22;
-
-        std::cout << " Creating ssh session ... " << std::endl;
-        sshSession = ssh_new();
-        if (sshSession == NULL)
-            exit(-1);
-        std::cout << " Creating ssh session ...OK " << std::endl;
-
-        std::cout << " Setting ssh options ... " << std::endl;
-        ssh_options_set(sshSession, SSH_OPTIONS_HOST, jobHostName.toAscii().data());
-        // ssh_options_set(sshSession, SSH_OPTIONS_USER, "antoine");
-        ssh_options_set(sshSession, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
-        ssh_options_set(sshSession, SSH_OPTIONS_PORT, &port);
-        std::cout << " Setting ssh options ... OK" << std::endl;
-
-        std::cout << " Connecting ssh ... " << std::endl;
-        int connectionResponse = ssh_connect(sshSession);
-        if (connectionResponse != SSH_OK)
-        {
-            fprintf(stderr, "Error connecting to host %s : %s\n", jobHostName.toAscii().data(),
-                    ssh_get_error(sshSession));
-            ssh_free(sshSession);
-            exit(-1);
-        }
-        std::cout << " Connecting ssh ... OK" << std::endl;
-
-        // TODO Authenticating the server
-        // if (verify_knownhost(my_ssh_session) < 0)
-        // {
-        //     ssh_disconnect(my_ssh_session);
-        //     ssh_free(my_ssh_session);
-        //     exit(-1);
-        // }
-
-        // // TODO Authenticating the user
-        // password = getpass("Password: ");
-        // rc = ssh_userauth_password(my_ssh_session, NULL, password);
-        // if (rc != SSH_AUTH_SUCCESS)
-        // {
-        //     fprintf(stderr, "Error authenticating with password: %s\n",
-        //             ssh_get_error(my_ssh_session));
-        //     ssh_disconnect(my_ssh_session);
-        //     ssh_free(my_ssh_session);
-        //     exit(-1);
-        // }
-
-        sftp_session sftpSession;
-        int rc;
-        std::cout << " Creating sftp session ... " << std::endl;
-        sftpSession = sftp_new(sshSession);
-        if (sftpSession == NULL)
-        {
-            fprintf(stderr, "Error allocating SFTP session: %s\n",
-                    ssh_get_error(sshSession));
-            return;// SSH_ERROR;
-        }
-        std::cout << " Creating sftp session ...OK " << std::endl;
-
-        std::cout << " Init sftp session ... " << std::endl;
-        rc = sftp_init(sftpSession);
-        if (rc != SSH_OK)
-        {
-            // fprintf(stderr, "Error initializing SFTP session: %s\n",
-                    // sftp_get_error(sftpSession));
-            sftp_free(sftpSession);
-            return;// rc;
-        }
-        std::cout << " Init sftp session ... OK" << std::endl;
-
-        #define MAX_XFER_BUF_SIZE 16384
-
-        int access_type;
-        sftp_file remoteFile;
-        char buffer[MAX_XFER_BUF_SIZE];
-        int nbytes, nwritten, rc1;
-        int fd;
-        access_type = O_RDONLY;
-
-        std::cout << " Opening sftp remoteFile ... " << std::endl;
-        remoteFile = sftp_open(sftpSession, "/etc/profile",
-                               access_type, 0);
-        if (remoteFile == NULL) {
-            fprintf(stderr, "Can't open remoteFile for reading: %s\n",
-                    ssh_get_error(sshSession));
-            return;// SSH_ERROR;
-        }
-        std::cout << " Opening sftp remoteFile ... OK" << std::endl;
-
-        std::string localFileName = "/tmp/dimjcPID" + pidStr.toStdString() + "_" + jobHostName.toStdString() + ".log";
-        std::cout << " Creating local file ... " << std::endl;
-        fd = open(localFileName.c_str(), O_CREAT);
-        if (fd < 0) {
-            fprintf(stderr, "Can't open file for writing: %s\n",
-                    strerror(errno));
-            return;// SSH_ERROR;
-        }
-        std::cout << " Creating local file ...OK " << std::endl;
-
-        std::cout << " Reading local file ... " << std::endl;
-        for (;;) {
-            nbytes = sftp_read(remoteFile, buffer, sizeof(buffer));
-            if (nbytes == 0) {
-                break; // EOF
-            } else if (nbytes < 0) {
-                fprintf(stderr, "Error while reading file: %s\n",
-                        ssh_get_error(sshSession));
-                sftp_close(remoteFile);
-                return;// SSH_ERROR;
-            }
-            nwritten = write(fd, buffer, nbytes);
-            if (nwritten != nbytes) {
-                fprintf(stderr, "Error writing: %s\n",
-                        strerror(errno));
-                sftp_close(remoteFile);
-                return;// SSH_ERROR;
-            }
-        }
-        std::cout << " Reading local file ... OK" << std::endl;
-
-        std::cout << " Closing sftp session ..." << std::endl;
-        rc1 = sftp_close(remoteFile);
-        if (rc1 != SSH_OK) {
-            fprintf(stderr, "Can't close the read file: %s\n",
-                    ssh_get_error(sshSession));
-            return;// rc1;
-        }
-        std::cout << " Closing sftp session ... OK" << std::endl;
-
-        std::cout << " Freeing sftp session ... " << std::endl;
-        sftp_free(sftpSession);
-        std::cout << " Freeing sftp session ... OK" << std::endl;
-
-
-        std::cout << " Dumping localFile to widget ... " << std::endl;
-        QFile file(QString::fromStdString(localFileName));
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        {
-            std::cout << " Error : could not open logFile, you may want to check access rights" << std::endl;
-            return;
-        }
-
-        QTextStream in(&file);
-        QString text;
-        text = in.readAll();
-        pLogFile->setText(text);
-        file.close();
-        pLogFile->show();
-        std::cout << " Dumping localFile to widget ... OK" << std::endl;
-
-        std::cout << " Disconnecting ssh session ... " << std::endl;
-        ssh_disconnect(sshSession);
-        std::cout << " Disconnecting ssh session ... OK" << std::endl;
-
-        std::cout << " Freeing ssh session ... " << std::endl;
-        ssh_free(sshSession);
-        std::cout << " Freeing ssh session ... OK" << std::endl;
-
-        */
-    }
+    pLogFile->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
+    pLogFile->show();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -585,7 +401,7 @@ void DQMJobInterfaceWidget::startHostJobs()
         return;
     }
 
-    m_pJobIterface->startJobs(hostName.toStdString());
+    m_pJobInterface->startJobs(hostName.toStdString());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -609,14 +425,14 @@ void DQMJobInterfaceWidget::startSelectedJob()
         return;
     }
 
-    m_pJobIterface->startJob(hostName.toStdString(), jobName.toStdString());
+    m_pJobInterface->startJob(hostName.toStdString(), jobName.toStdString());
 }
 
 //-------------------------------------------------------------------------------------------------
 
 void DQMJobInterfaceWidget::startAllJobs()
 {
-    const Json::Value &root(m_pJobIterface->getRoot());
+    const Json::Value &root(m_pJobInterface->getRoot());
     StringVector hostList = root["HOSTS"].getMemberNames();
 
     QStringList nonRunningJobControls = getNonRunningJobControls();
@@ -628,7 +444,7 @@ void DQMJobInterfaceWidget::startAllJobs()
     for(StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
             endIter != iter ; ++iter)
     {
-        m_pJobIterface->startJobs(*iter);
+        m_pJobInterface->startJobs(*iter);
     }
 }
 
@@ -652,7 +468,7 @@ void DQMJobInterfaceWidget::clearHostJobs()
         return;
     }
 
-    m_pJobIterface->clearHostJobs(hostName.toStdString());
+    m_pJobInterface->clearHostJobs(hostName.toStdString());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -664,7 +480,7 @@ void DQMJobInterfaceWidget::clearAllJobs()
     if(!nonRunningJobControls.isEmpty())
         popupMissingJobControls(nonRunningJobControls);
 
-    m_pJobIterface->clearAllJobs();
+    m_pJobInterface->clearAllJobs();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -696,7 +512,7 @@ void DQMJobInterfaceWidget::killSelectedJob()
     uint32_t pid = pidStr.toUInt();
     uint32_t sig = sigVar.toUInt();
 
-    m_pJobIterface->killJob(hostName.toStdString(), pid, sig);
+    m_pJobInterface->killJob(hostName.toStdString(), pid, sig);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -729,7 +545,7 @@ void DQMJobInterfaceWidget::restartSelectedJob()
     uint32_t pid = pidStr.toUInt();
     uint32_t sig = sigVar.toUInt();
 
-    m_pJobIterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
+    m_pJobInterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -765,7 +581,7 @@ void DQMJobInterfaceWidget::restartAllJobs()
             uint32_t pid = pidStr.toUInt();
             uint32_t sig = sigVar.toUInt();
 
-            m_pJobIterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
+            m_pJobInterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
         }
     }
 }
@@ -774,14 +590,14 @@ void DQMJobInterfaceWidget::restartAllJobs()
 
 void DQMJobInterfaceWidget::updateJobStatus()
 {
-    m_pJobIterface->status();
+    m_pJobInterface->status();
 
     struct timespec timesleep;
     timesleep.tv_sec = 0;
     timesleep.tv_nsec = 500000000L;
     nanosleep(&timesleep, NULL);
 
-    this->updateStatus(m_pJobIterface->getProcessStatusValue());
+    this->updateStatus(m_pJobInterface->getProcessStatusValue());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -930,15 +746,15 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
 
 void DQMJobInterfaceWidget::handleAutomaticModeButtonClicked()
 {
-	if(m_pJobIterface->started())
+	if(m_pJobInterface->started())
     {
-        m_pJobIterface->stopUpdate();
+        m_pJobInterface->stopUpdate();
         m_pAutomaticModeButton->setText("Start");
     }
     else
     {
         int nSeconds = m_pUpdatePeriodSpinBox->value();
-        m_pJobIterface->startUpdate(nSeconds);
+        m_pJobInterface->startUpdate(nSeconds);
         m_pAutomaticModeButton->setText("Stop");
     }
 }
@@ -947,10 +763,10 @@ void DQMJobInterfaceWidget::handleAutomaticModeButtonClicked()
 
 void DQMJobInterfaceWidget::handleAutomaticModeValueChanged(int value)
 {
-	if(m_pJobIterface->started())
+	if(m_pJobInterface->started())
     {
-        m_pJobIterface->stopUpdate();
-        m_pJobIterface->startUpdate(value);
+        m_pJobInterface->stopUpdate();
+        m_pJobInterface->startUpdate(value);
     }
 }
 
@@ -958,7 +774,7 @@ void DQMJobInterfaceWidget::handleAutomaticModeValueChanged(int value)
 
 void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
 {
-    const Json::Value value = m_pJobIterface->processStatus(hostName.toStdString())["JOBS"];
+    const Json::Value value = m_pJobInterface->processStatus(hostName.toStdString())["JOBS"];
     QTreeWidgetItem *pHostItem = 0;
 
     for(unsigned int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
