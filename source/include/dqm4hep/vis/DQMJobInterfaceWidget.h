@@ -200,7 +200,7 @@ private:
 
 private:
 
-    DQMJobInterface        *m_pJobIterface;
+    DQMJobInterface        *m_pJobInterface;
     std::string             m_currentJsonFile;
 
     QPushButton            *m_pAutomaticModeButton;
