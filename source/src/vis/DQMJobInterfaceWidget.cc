@@ -51,8 +51,8 @@
 #include <QContextMenuEvent>
 
 // -- libssh headers
-#include <libssh/libssh.h>
-#include <libssh/sftp.h>
+//#include <libssh/libssh.h>
+//#include <libssh/sftp.h>
 // #include <sys/stat.h>
 #include <fcntl.h>
 
