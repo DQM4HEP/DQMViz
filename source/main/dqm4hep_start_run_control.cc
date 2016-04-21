@@ -33,6 +33,7 @@
 #include "dqm4hep/DQMLogging.h"
 #include "dqm4hep/vis/DQMRunControlWidget.h"
 #include "dqm4hep/vis/DQMLoggerWidget.h"
+#include "dqm4hep/vis/DQMGuiTools.h"
 
 // -- qt headers
 #include <QApplication>
@@ -41,6 +42,7 @@
 #include <QMenu>
 #include <QAction>
 #include <QLayout>
+#include <QInputDialog>
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -126,6 +128,7 @@ int main(int argc, char* argv[])
 	QApplication app(argc, argv);
 
 	QMainWindow mainWindow;
+	DQMGuiTools::checkDimDnsNode(&mainWindow);
 
 	QString iconDir = QString(DQM4HEP_DIR) + "/icons";
 	mainWindow.setWindowIcon(QIcon(iconDir + "/RUN_CTRL.png"));

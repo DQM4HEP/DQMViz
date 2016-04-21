@@ -34,11 +34,11 @@
 #include "dqm4hep/DQMLogging.h"
 
 #include "dqm4hep/vis/DQMMonitoring.h"
-
 #include "dqm4hep/vis/DQMMonitoringModel.h"
 #include "dqm4hep/vis/DQMMonitoringView.h"
 #include "dqm4hep/vis/DQMMonitoringController.h"
 #include "dqm4hep/vis/DQMGuiMonitorElement.h"
+#include "dqm4hep/vis/DQMGuiTools.h"
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -118,6 +118,8 @@ int main(int argc, char* argv[])
 
 	pView->buildView();
 	pView->showView();
+
+	DQMGuiTools::checkDimDnsNode(pView->getMainWindow());
 
 	if( settingsFileArg.isSet() )
 		pController->openFile( settingsFileArg.getValue() );

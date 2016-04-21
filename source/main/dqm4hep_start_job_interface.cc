@@ -33,6 +33,7 @@
 #include "DQMVizConfig.h"       // for soft version
 #include "dqm4hep/DQM4HEP.h"
 #include "dqm4hep/vis/DQMJobInterfaceWidget.h"
+#include "dqm4hep/vis/DQMGuiTools.h"
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -66,6 +67,8 @@ int main(int argc, char* argv[])
 	QString iconDir = QString(DQM4HEP_DIR) + "/icons";
 
 	DQMJobInterfaceWidget jobInterface;
+	DQMGuiTools::checkDimDnsNode(&jobInterface);
+
 	jobInterface.setWindowIcon(QIcon(iconDir + "/MON_CTRL_MAIN.png"));
 	jobInterface.setWindowTitle("Job interface");
 	jobInterface.show();
