@@ -646,7 +646,10 @@ void DQMMonitoringController::saveAs(const std::string &fileName) const
 
 	TiXmlElement *pDimDnsNodeElement = new TiXmlElement("dimDnsNode");
 	pMonitoringElement->LinkEndChild(pDimDnsNodeElement);
-	pDimDnsNodeElement->SetAttribute("value", DimClient::getDnsNode());
+
+	char *pDimDnsNode = getenv("DIM_DNS_NODE");
+	std::string dimDnsNode = pDimDnsNode ? pDimDnsNode : "";
+	pDimDnsNodeElement->SetAttribute("value", dimDnsNode);
 
 	TiXmlElement *pViewElement = this->getMonitoring()->getView()->toXml();
 
