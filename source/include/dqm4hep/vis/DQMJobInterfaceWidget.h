@@ -121,6 +121,10 @@ public slots:
 
 	/**
 	 */
+	void restartHostJobs();
+
+	/**
+	 */
 	void restartAllJobs();
 
 	/**
@@ -234,6 +238,7 @@ private:
     QAction                 *m_pReloadFileAction;
 
     QAction                 *m_pStartHostJobsAction;
+    QAction                 *m_pRestartHostJobsAction;
     QAction                 *m_pClearHostJobsAction;
 
     QAction                 *m_pKillJobAction;
