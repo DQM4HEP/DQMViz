@@ -312,6 +312,9 @@ void DQMBrowserWidget::fillModuleNameList(const DQMMonitorElementInfoList &nameL
 		QString monitorElementType = nameList.at(i).find( DQMKey::ME_TYPE )->second.c_str();
 		QString monitorElementDescription = nameList.at(i).find( DQMKey::ME_DESCRIPTION )->second.c_str();
 
+		if( monitorElementDescription.isEmpty() )
+			monitorElementDescription = "No description available";
+
 		QStringList itemColumns;
 		itemColumns << moduleName << monitorElementFullPath << monitorElementName << monitorElementType;
 
