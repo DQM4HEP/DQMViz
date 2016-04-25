@@ -154,6 +154,8 @@ DQMBrowserWidget::DQMBrowserWidget(DQMMonitoring *pMonitoring) :
 	connect(this, SIGNAL(keyPressEvent(QKeyEvent*)), this, SLOT(handleKeyPressEvent(QKeyEvent*)));
 	connect(m_pAppendButton, SIGNAL(clicked()), this, SLOT(handleUpdateButtonClicked()));
 	connect(m_pReplaceButton, SIGNAL(clicked()), this, SLOT(handleReplaceButtonClicked()));
+	connect(m_pModuleNameEdit, SIGNAL(returnPressed()), this, SLOT(querySearch()));
+	connect(m_pMonitorElementNameEdit, SIGNAL(returnPressed()), this, SLOT(querySearch()));
 
 	updateCollectorList();
 
