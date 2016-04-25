@@ -376,6 +376,7 @@ void DQMJobInterfaceWidget::openLogFile()
     QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
     pLogFile->setWindowTitle(titleStr);
     pLogFile->resize(700, 700);
+    pLogFile->setReadOnly(true);
     pLogFile->setAttribute(Qt::WA_DeleteOnClose, true);
 
     pLogFile->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
@@ -903,8 +904,6 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
         else
             pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
     }
-
-//    m_pTreeWidget->header()->resizeSections(QHeaderView::Stretch);
 }
 
 //-------------------------------------------------------------------------------------------------
