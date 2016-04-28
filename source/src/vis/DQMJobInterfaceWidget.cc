@@ -49,12 +49,95 @@
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QContextMenuEvent>
+#include <QCommonStyle>
+#include <QCheckBox>
 
 // -- libssh headers
 //#include <libssh/libssh.h>
 //#include <libssh/sftp.h>
 // #include <sys/stat.h>
 #include <fcntl.h>
+
+
+class SearchWidget : public QWidget
+{
+public:
+	SearchWidget()
+	{
+		this->setLayout( new QHBoxLayout() );
+
+	    m_pSearchEdit = new QLineEdit();
+	    this->layout()->addWidget(m_pSearchEdit);
+
+	    QCommonStyle style;
+	    QPushButton *pUpButton = new QPushButton(style.standardIcon(QStyle::SP_ArrowBack), "");
+	    this->layout()->addWidget(pUpButton);
+
+	    QPushButton *pDownButton = new QPushButton(style.standardIcon(QStyle::SP_ArrowForward), "");
+	    this->layout()->addWidget(pDownButton);
+
+	    QCheckBox *pCaseSensitiveBox = new QCheckBox("Case sensitive");
+	    this->layout()->addWidget(pCaseSensitiveBox);
+	    pCaseSensitiveBox->setChecked(false);
+
+	    QIcon closeIcon( QString(DQMViz_DIR) + "/icons/icon-cross.png" );
+	    QPushButton *pCloseButton = new QPushButton(closeIcon, "");
+	    this->layout()->addWidget(pCloseButton);
+
+	    connect(pCloseButton, SIGNAL(clicked()), this, SLOT(hide()));
+	}
+
+	inline QLineEdit *searchEdit() const
+	{
+		return m_pSearchEdit;
+	}
+
+private:
+	QLineEdit             *m_pSearchEdit;
+};
+
+class LogEdit : public QTextEdit
+{
+public:
+	LogEdit( SearchWidget *pShowWidget ) :
+		QTextEdit(),
+		m_pShowWidget(pShowWidget)
+	{
+		this->setReadOnly(true);
+	}
+
+	void keyPressEvent(QKeyEvent *pKeyEvent)
+	{
+	    if ( (pKeyEvent->key() == Qt::Key_F)
+	      && (pKeyEvent->modifiers().testFlag(Qt::ControlModifier)) )
+	    {
+	    	m_pShowWidget->show();
+	    	m_pShowWidget->searchEdit()->setFocus(Qt::ShortcutFocusReason);
+	    }
+
+	    QTextEdit::keyPressEvent(pKeyEvent);
+	}
+
+private:
+	SearchWidget         *m_pShowWidget;
+};
+
+//class LogViewWidget : public QWidget
+//{
+//public:
+//	LogViewWidget()
+//	{
+//
+//	}
+//
+//	void setLogContent( const QString &contents )
+//	{
+//
+//	}
+//
+//
+//};
+
 
 namespace dqm4hep
 {
@@ -377,16 +460,24 @@ void DQMJobInterfaceWidget::openLogFile()
     QString jobHostName = pSelectedItem->parent()->text(NAME);
     pid_t pid = pidStr.toInt();
 
-    QTextEdit *pLogFile = new QTextEdit();
-
+    QWidget *pWidget = new QWidget();
+    pWidget->setLayout( new QVBoxLayout() );
     QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
-    pLogFile->setWindowTitle(titleStr);
-    pLogFile->resize(700, 700);
-    pLogFile->setReadOnly(true);
-    pLogFile->setAttribute(Qt::WA_DeleteOnClose, true);
+    pWidget->setWindowTitle(titleStr);
+    pWidget->resize(700, 700);
+    pWidget->setAttribute(Qt::WA_DeleteOnClose, true);
 
+    SearchWidget *pSearchWidget = new SearchWidget();
+    pSearchWidget->hide();
+    LogEdit *pLogFile = new LogEdit(pSearchWidget);
+
+    pWidget->layout()->addWidget(pLogFile);
+    pWidget->layout()->addWidget(pSearchWidget);
+
+    pLogFile->setReadOnly(true);
     pLogFile->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
-    pLogFile->show();
+
+    pWidget->show();
 }
 
 //-------------------------------------------------------------------------------------------------
