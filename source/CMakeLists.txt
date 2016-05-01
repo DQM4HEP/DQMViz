@@ -5,7 +5,7 @@
 #######################################################
 
 # include directories
-INCLUDE_DIRECTORIES( BEFORE include )
+INCLUDE_DIRECTORIES( BEFORE include include/QtWebApp ${CMAKE_CURRENT_BINARY_DIR}/include/ )
 
 # require proper c++
 ADD_DEFINITIONS( "-pedantic -Wunused-value -O2" )
@@ -14,6 +14,7 @@ ADD_DEFINITIONS("-Wno-long-long -Wreturn-type -Werror")
 
 # ----- Build the global library -----
 AUX_SOURCE_DIRECTORY( src/vis SRC_FILES )
+AUX_SOURCE_DIRECTORY( src/QtWebApp SRC_FILES )
     
 QT4_WRAP_CPP (
     VIS_MOC_SRC_FILES
@@ -26,12 +27,12 @@ QT4_WRAP_CPP (
     include/dqm4hep/vis/DQMJobInterface.h
 	include/dqm4hep/vis/DQMLoggerWidget.h
 	include/dqm4hep/vis/DQMJobInterfaceWidget.h
-    include/dqm4hep/vis/DQMRunControlWidget.h
     include/dqm4hep/vis/DQMCanvas.h
     include/dqm4hep/vis/DQMCanvasView.h
     include/dqm4hep/vis/DQMRootWidget.h
     include/dqm4hep/vis/DQMBrowserWidget.h
     include/dqm4hep/vis/DQMMonitorElementInfoWidget.h
+    include/dqm4hep/vis/DQMRunControlInterfaceWidget.h
 )
 
 ADD_SHARED_LIBRARY( ${PROJECT_NAME} ${SRC_FILES} ${VIS_MOC_SRC_FILES} )
@@ -52,11 +53,11 @@ INSTALL(
 )
 
 # ----- Build run control binary -----
-ADD_EXECUTABLE( dqm4hep_start_run_control main/dqm4hep_start_run_control.cc )
-TARGET_LINK_LIBRARIES( dqm4hep_start_run_control ${PROJECT_NAME} ${PROJECT_NAME} )
+ADD_EXECUTABLE( dqm4hep_start_run_control_interface main/dqm4hep_start_run_control_interface.cc )
+TARGET_LINK_LIBRARIES( dqm4hep_start_run_control_interface ${PROJECT_NAME} ${PROJECT_NAME} )
 
 INSTALL(
-    TARGETS dqm4hep_start_run_control
+    TARGETS dqm4hep_start_run_control_interface
     RUNTIME DESTINATION bin
 )
 
