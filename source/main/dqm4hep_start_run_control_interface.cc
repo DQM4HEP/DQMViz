@@ -48,11 +48,8 @@
 #include "tclap/CmdLine.h"
 #include "tclap/Arg.h"
 
-#include <mongoose/Server.h>
-
 using namespace std;
 using namespace dqm4hep;
-using namespace Mongoose;
 
 int main(int argc, char* argv[])
 {
