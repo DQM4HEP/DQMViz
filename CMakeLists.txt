@@ -24,30 +24,20 @@ ELSE()
 	MESSAGE( SEND_ERROR "DQMCore requires C++11 support. Please upgrade your compiler !" )
 ENDIF()
 
-# ----- dependencies -----
+# ----- cmake macros -----
 LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
-MESSAGE( STATUS "CMAKE_MODULE_PATH : ${CMAKE_MODULE_PATH}" )
+
+# ----- Find DQMCore package -----
+FIND_PACKAGE( DQMCore REQUIRED )
+
+LIST( APPEND CMAKE_MODULE_PATH ${DQMCore_DIR}/cmake )
 
 # load default settings
-FIND_PACKAGE( ILCUTIL COMPONENTS ILCSOFT_CMAKE_MODULES QUIET )
-
-IF( ILCUTIL_FOUND )
-    INCLUDE( ilcsoft_default_settings )
-ELSE()
-    INCLUDE( default_settings )
-ENDIF()
-
-
-# ----- Generate DOXYGEN documentation (optionnal) -----
-OPTION( INSTALL_DOC             "Set to OFF to skip build/install Documentation" OFF )
-
+INCLUDE( default_settings )
 
 # ----- Find ROOT package -----
 LIST( APPEND ROOT_COMPONENT_LIST Core Hist Rint HistPainter Graf Graf3d MathCore Net RIO Tree QtRoot GQt Gui )
 FIND_PACKAGE( ROOT COMPONENTS ${ROOT_COMPONENT_LIST} REQUIRED )
-
-# ----- Find Threads or multithreading.-----
-FIND_PACKAGE( Threads REQUIRED )
 
 # ----- Find LOG4CXX package -----
 FIND_PACKAGE( LOG4CXX REQUIRED )
@@ -55,39 +45,11 @@ FIND_PACKAGE( LOG4CXX REQUIRED )
 # ----- Find json cpp package -----
 FIND_PACKAGE( JSONCPP REQUIRED )
 
-# ----- Find DIM package -----
-FIND_PACKAGE( DIM REQUIRED SHARED )
-
 # ----- Find DIMJC package -----
 FIND_PACKAGE( DIMJC REQUIRED )
 
-# ----- Find DQMCore package -----
-FIND_PACKAGE( DQMCore REQUIRED )
-
-# ----- Find xdrstream package -----
-FIND_PACKAGE( xdrstream REQUIRED )
-
-# ----- Find Mongoose package -----
-FIND_PACKAGE( Mongoose QUIET )
-
-IF( MONGOOSE_FOUND )
-	MESSAGE( STATUS "Check for MONGOOSE_INCLUDE_DIR: ${MONGOOSE_INCLUDE_DIR} -- ok" )
-	MESSAGE( STATUS "Check for MONGOOSE_LIBRARIES: ${MONGOOSE_LIBRARIES} -- ok" )
-
-	ADD_DEFINITIONS( -DDQM4HEP_USE_MONGOOSE=1 )
-	
-	INCLUDE_DIRECTORIES( ${MONGOOSE_INCLUDE_DIR} )
-	LINK_LIBRARIES( ${MONGOOSE_LIBRARIES} )
-	
-ELSE()
-
-	MESSAGE( STATUS "Check for MONGOOSE_INCLUDE_DIR: ${MONGOOSE_INCLUDE_DIR}" )
-	MESSAGE( STATUS "Check for MONGOOSE_LIBRARIES: ${MONGOOSE_LIBRARIES}" )
-	
-ENDIF()
-
 # Include package properties
-FOREACH( pkg ROOT LOG4CXX JSONCPP DIM DIMJC DQMCore xdrstream )
+FOREACH( pkg ROOT JSONCPP DIMJC DQMCore )
 
 	INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
 	LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
@@ -114,6 +76,9 @@ LIST( APPEND ${PROJECT_NAME}_DEPENDS_INCLUDE_DIRS ${QT_INCLUDE_DIRS} )
 LIST( APPEND ${PROJECT_NAME}_DEPENDS_LIBRARY_DIRS ${QT_LIBRARY_DIRS} )
 LIST( APPEND ${PROJECT_NAME}_DEPENDS_LIBRARIES    ${QT_LIBRARIES}    )
 
+
+# ----- Generate DOXYGEN documentation (optionnal) -----
+OPTION( INSTALL_DOC             "Set to OFF to skip build/install Documentation" OFF )
 
 # ----- Install doc -----
 IF( INSTALL_DOC )
