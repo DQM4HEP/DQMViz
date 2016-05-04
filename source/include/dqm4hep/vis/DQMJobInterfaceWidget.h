@@ -40,6 +40,9 @@
 #include <QPushButton>
 #include <QMainWindow>
 #include <QSpinBox>
+#include <QTextEdit>
+#include <QShortcut>
+#include <QCheckBox>
 
 // -- json headers
 #include "json/json.h"
@@ -56,8 +59,8 @@ class DQMJobInterfaceWidget : public QWidget
     Q_OBJECT
 
 public:
-	/** ItemType enum
-	 */
+    /** ItemType enum
+     */
     enum ItemType
     {
         HOST_ITEM,
@@ -70,13 +73,13 @@ public:
         VARIABLE_ITEM
     };
 
-	/** Constructor
-	 */
-	DQMJobInterfaceWidget(QWidget *pParent = NULL);
+    /** Constructor
+     */
+    DQMJobInterfaceWidget(QWidget *pParent = NULL);
 
-	/** Destructor
-	 */
-	~DQMJobInterfaceWidget();
+    /** Destructor
+     */
+    ~DQMJobInterfaceWidget();
 
     /** Get the current json file name
      */
@@ -87,58 +90,58 @@ public:
     DQMJobInterface *getJobInterface() const;
 
 public slots:
-	/** Load json file. Clear the pocess table
-	 */
-	void loadJsonFile(const std::string &fileName);
+    /** Load json file. Clear the pocess table
+     */
+    void loadJsonFile(const std::string &fileName);
 
-	/**
-	 */
-	void startHostJobs();
+    /**
+     */
+    void startHostJobs();
 
-	/**
-	 */
-	void startAllJobs();
+    /**
+     */
+    void startAllJobs();
 
-	/**
-	 */
-	void startSelectedJob();
+    /**
+     */
+    void startSelectedJob();
 
-	/**
-	 */
-	void clearHostJobs();
+    /**
+     */
+    void clearHostJobs();
 
-	/**
-	 */
-	void clearAllJobs();
+    /**
+     */
+    void clearAllJobs();
 
-	/**
-	 */
-	void killSelectedJob();
+    /**
+     */
+    void killSelectedJob();
 
-	/**
-	 */
-	void restartSelectedJob();
+    /**
+     */
+    void restartSelectedJob();
 
-	/**
-	 */
-	void restartHostJobs();
+    /**
+     */
+    void restartHostJobs();
 
-	/**
-	 */
-	void restartAllJobs();
+    /**
+     */
+    void restartAllJobs();
 
-	/**
-	 */
-	void updateJobStatus();
+    /**
+     */
+    void updateJobStatus();
 
 private slots:
-	/**
-	 */
-	void loadJsonFile();
+    /**
+     */
+    void loadJsonFile();
 
-	/**
-	 */
-	void reloadJsonFile();
+    /**
+     */
+    void reloadJsonFile();
 
     /**
      */
@@ -166,9 +169,9 @@ private:
         STATUS
     };
 
-	/**
-	 */
-	void loadJson(const Json::Value &root);
+    /**
+     */
+    void loadJson(const Json::Value &root);
 
     /**
      */
@@ -251,6 +254,52 @@ private:
 
     QAction                 *m_pUpdateAction;
     QAction                 *m_pOpenLogFileAction;
+};
+
+/** DQMJobInterfaceLogFileWidget class
+ */
+class DQMJobInterfaceLogFileWidget : public QWidget
+{
+    Q_OBJECT
+
+public:
+    /** Constructor
+         */
+    DQMJobInterfaceLogFileWidget(DQMJobInterface *pParent, QString jobHostName, QString jobName, QString pidStr);
+
+    /** Destructor
+     */
+    ~DQMJobInterfaceLogFileWidget();
+
+
+private:
+    DQMJobInterface         *m_pJobInterface;
+
+    QString                  m_pidStr;
+    QString                  m_jobHostName;
+    QTextEdit               *m_pLogFileEdit;
+    QPushButton             *m_pUpdateLogButton;
+    QTextCursor              m_cursor;
+    QWidget                 *m_pSearchWidget;
+    QLineEdit               *m_pSearchEdit;
+    QPushButton             *m_pStartSearchButton;
+    QPushButton             *m_pStartBackSearchButton;
+    QString                  m_searchStr;
+    QCheckBox               *m_pCaseCheckBox;
+    QTextDocument::FindFlags m_caseFlags;
+
+private slots:
+    /**
+     */
+    void showSearchWidget();
+
+    /**
+     */
+    void searchString();
+
+    /**
+     */
+    void updateLogFile();
 };
 
 }

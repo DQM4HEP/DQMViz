@@ -49,12 +49,10 @@
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QContextMenuEvent>
+#include <QShortcut>
 
 // -- libssh headers
-//#include <libssh/libssh.h>
-//#include <libssh/sftp.h>
-// #include <sys/stat.h>
-#include <fcntl.h>
+// #include <fcntl.h>
 
 namespace dqm4hep
 {
@@ -142,6 +140,10 @@ DQMJobInterfaceWidget::DQMJobInterfaceWidget(QWidget *pParent):
     // Create Menus / Menus Entries
     createActions();
     createMenus();
+
+    // Shortcut for closing the window
+    QShortcut *closeShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), this);
+    connect(closeShortcut, SIGNAL(activated()), this, SLOT(close()));
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -259,13 +261,13 @@ void DQMJobInterfaceWidget::contextMenuEvent(QContextMenuEvent *event)
         return;
     }
 
-    if(pCurrentItem->data(0, Qt::UserRole).value<int>() == HOST_ITEM)
+    if (pCurrentItem->data(0, Qt::UserRole).value<int>() == HOST_ITEM)
     {
         m_pStartHostJobsAction->setEnabled(true);
         m_pRestartHostJobsAction->setEnabled(true);
         m_pClearHostJobsAction->setEnabled(true);
     }
-    else if(pCurrentItem->data(0, Qt::UserRole).value<int>() == JOB_ITEM)
+    else if (pCurrentItem->data(0, Qt::UserRole).value<int>() == JOB_ITEM)
     {
         QString status = pCurrentItem->text(STATUS).at(0);
 
@@ -304,7 +306,7 @@ void DQMJobInterfaceWidget::loadJsonFile()
 {
     QString fileName  = QFileDialog::getOpenFileName(this, "Load file");
 
-    if(fileName.isEmpty())
+    if (fileName.isEmpty())
         return;
 
     loadJsonFile(fileName.toStdString());
@@ -314,10 +316,10 @@ void DQMJobInterfaceWidget::loadJsonFile()
 
 void DQMJobInterfaceWidget::loadJsonFile(const std::string &fileName)
 {
-    if(fileName.empty())
+    if (fileName.empty())
         return;
 
-	if(m_pTreeWidget->topLevelItemCount() != 0)
+    if (m_pTreeWidget->topLevelItemCount() != 0)
     {
         QMessageBox::StandardButton button =
             QMessageBox::warning(this, "Load json file",
@@ -327,7 +329,7 @@ void DQMJobInterfaceWidget::loadJsonFile(const std::string &fileName)
                                  QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel,
                                  QMessageBox::Cancel);
 
-		switch(button)
+        switch (button)
         {
         case QMessageBox::Yes:
             this->clearAllJobs();
@@ -353,7 +355,7 @@ void DQMJobInterfaceWidget::loadJsonFile(const std::string &fileName)
 
 void DQMJobInterfaceWidget::reloadJsonFile()
 {
-    if(m_currentJsonFile.empty())
+    if (m_currentJsonFile.empty())
         return;
 
     loadJsonFile(m_currentJsonFile);
@@ -375,91 +377,84 @@ void DQMJobInterfaceWidget::openLogFile()
         return;
 
     QString jobHostName = pSelectedItem->parent()->text(NAME);
-    pid_t pid = pidStr.toInt();
 
-    QTextEdit *pLogFile = new QTextEdit();
-
-    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
-    pLogFile->setWindowTitle(titleStr);
-    pLogFile->resize(700, 700);
-    pLogFile->setReadOnly(true);
-    pLogFile->setAttribute(Qt::WA_DeleteOnClose, true);
-
-    pLogFile->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
-    pLogFile->show();
+    DQMJobInterfaceLogFileWidget *pLogFileWidget = new DQMJobInterfaceLogFileWidget(m_pJobInterface, jobHostName, jobName, pidStr);
+    pLogFileWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+    pLogFileWidget->resize(1000, 700);
+    pLogFileWidget->show();
 }
 
 //-------------------------------------------------------------------------------------------------
 
 void DQMJobInterfaceWidget::startHostJobs()
 {
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-	    if( pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM )
-	    	continue;
+        if ( pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM )
+            continue;
 
-	    QString hostName = pSelectedItem->text(NAME);
+        QString hostName = pSelectedItem->text(NAME);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-	    m_pJobInterface->startJobs(hostName.toStdString());
-	}
+        m_pJobInterface->startJobs(hostName.toStdString());
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
 
 void DQMJobInterfaceWidget::startSelectedJob()
 {
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-		if(pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
-			continue;
+        if (pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
+            continue;
 
-		QString hostName = pSelectedItem->parent()->text(NAME);
-		QString jobName = pSelectedItem->text(NAME);
+        QString hostName = pSelectedItem->parent()->text(NAME);
+        QString jobName = pSelectedItem->text(NAME);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-		m_pJobInterface->startJob(hostName.toStdString(), jobName.toStdString());
-	}
+        m_pJobInterface->startJob(hostName.toStdString(), jobName.toStdString());
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -471,11 +466,11 @@ void DQMJobInterfaceWidget::startAllJobs()
 
     QStringList nonRunningJobControls = getNonRunningJobControls();
 
-    if(!nonRunningJobControls.isEmpty())
+    if (!nonRunningJobControls.isEmpty())
         popupMissingJobControls(nonRunningJobControls);
 
     // loop over hosts
-    for(StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
+    for (StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
             endIter != iter ; ++iter)
     {
         m_pJobInterface->startJobs(*iter);
@@ -486,36 +481,36 @@ void DQMJobInterfaceWidget::startAllJobs()
 
 void DQMJobInterfaceWidget::clearHostJobs()
 {
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-		if(pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM)
-			continue;
+        if (pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM)
+            continue;
 
-		QString hostName = pSelectedItem->text(NAME);
+        QString hostName = pSelectedItem->text(NAME);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-		m_pJobInterface->clearHostJobs(hostName.toStdString());
-	}
+        m_pJobInterface->clearHostJobs(hostName.toStdString());
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -524,7 +519,7 @@ void DQMJobInterfaceWidget::clearAllJobs()
 {
     QStringList nonRunningJobControls = getNonRunningJobControls();
 
-    if(!nonRunningJobControls.isEmpty())
+    if (!nonRunningJobControls.isEmpty())
         popupMissingJobControls(nonRunningJobControls);
 
     m_pJobInterface->clearAllJobs();
@@ -535,45 +530,45 @@ void DQMJobInterfaceWidget::clearAllJobs()
 void DQMJobInterfaceWidget::killSelectedJob()
 {
     QComboBox* pKillItem = m_pKillComboBoxWidget;
-	QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
-	uint32_t sig = sigVar.toUInt();
+    QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
+    uint32_t sig = sigVar.toUInt();
 
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-		if(pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
-			continue;
+        if (pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
+            continue;
 
-		QString hostName = pSelectedItem->parent()->text(NAME);
-		QString pidStr = pSelectedItem->text(PID);
+        QString hostName = pSelectedItem->parent()->text(NAME);
+        QString pidStr = pSelectedItem->text(PID);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-		if(pidStr.isEmpty())
-			continue;
+        if (pidStr.isEmpty())
+            continue;
 
-		uint32_t pid = pidStr.toUInt();
+        uint32_t pid = pidStr.toUInt();
 
-		m_pJobInterface->killJob(hostName.toStdString(), pid, sig);
-	}
+        m_pJobInterface->killJob(hostName.toStdString(), pid, sig);
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -581,46 +576,46 @@ void DQMJobInterfaceWidget::killSelectedJob()
 void DQMJobInterfaceWidget::restartSelectedJob()
 {
     QComboBox* pKillItem = m_pKillComboBoxWidget;
-	QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
-	uint32_t sig = sigVar.toUInt();
+    QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
+    uint32_t sig = sigVar.toUInt();
 
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-		if(pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
-			continue;
+        if (pSelectedItem->data(0, Qt::UserRole).value<int>() != JOB_ITEM)
+            continue;
 
-		QString hostName = pSelectedItem->parent()->text(NAME);
-	    QString jobName = pSelectedItem->text(NAME);
-		QString pidStr = pSelectedItem->text(PID);
+        QString hostName = pSelectedItem->parent()->text(NAME);
+        QString jobName = pSelectedItem->text(NAME);
+        QString pidStr = pSelectedItem->text(PID);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-		if(pidStr.isEmpty())
-			continue;
+        if (pidStr.isEmpty())
+            continue;
 
-		uint32_t pid = pidStr.toUInt();
+        uint32_t pid = pidStr.toUInt();
 
-		m_pJobInterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
-	}
+        m_pJobInterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -628,52 +623,52 @@ void DQMJobInterfaceWidget::restartSelectedJob()
 void DQMJobInterfaceWidget::restartHostJobs()
 {
     QComboBox* pKillItem = m_pKillComboBoxWidget;
-	QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
-	uint32_t sig = sigVar.toUInt();
+    QVariant sigVar = pKillItem->itemData(pKillItem->currentIndex());
+    uint32_t sig = sigVar.toUInt();
 
-	QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
 
-	if( selectedItems.isEmpty() )
-		return;
+    if ( selectedItems.isEmpty() )
+        return;
 
-	QStringList nonRunningJobControls;
+    QStringList nonRunningJobControls;
 
-	for(int i=0 ; i<selectedItems.size() ; i++)
-	{
-	    QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
-	    if( ! pSelectedItem )
-	        continue;
+        if ( ! pSelectedItem )
+            continue;
 
-		if(pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM)
-			continue;
+        if (pSelectedItem->data(0, Qt::UserRole).value<int>() != HOST_ITEM)
+            continue;
 
-		QString hostName = pSelectedItem->text(NAME);
+        QString hostName = pSelectedItem->text(NAME);
 
-	    if( ! this->jobControlExists(hostName.toStdString()) )
-	    {
-	    	nonRunningJobControls << hostName;
-	        continue;
-	    }
+        if ( ! this->jobControlExists(hostName.toStdString()) )
+        {
+            nonRunningJobControls << hostName;
+            continue;
+        }
 
-        for(unsigned int j=0 ; j<pSelectedItem->childCount() ; j++)
+        for (unsigned int j = 0 ; j < pSelectedItem->childCount() ; j++)
         {
             QTreeWidgetItem *pJobItem = pSelectedItem->child(j);
 
             QString jobName = pJobItem->text(NAME);
             QString pidStr = pJobItem->text(PID);
 
-            if(pidStr.isEmpty())
+            if (pidStr.isEmpty())
                 continue;
 
             uint32_t pid = pidStr.toUInt();
 
             m_pJobInterface->restartJob(hostName.toStdString(), jobName.toStdString(), pid, sig);
         }
-	}
+    }
 
-	if( ! nonRunningJobControls.isEmpty() )
-		popupMissingJobControls(nonRunningJobControls);
+    if ( ! nonRunningJobControls.isEmpty() )
+        popupMissingJobControls(nonRunningJobControls);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -686,25 +681,25 @@ void DQMJobInterfaceWidget::restartAllJobs()
 
     QStringList nonRunningJobControls = getNonRunningJobControls();
 
-    if(!nonRunningJobControls.isEmpty())
+    if (!nonRunningJobControls.isEmpty())
         popupMissingJobControls(nonRunningJobControls);
 
     // loop over hosts and jobs
     // and restart them if the pid is defined
-    for(unsigned int h=0 ; h<m_pTreeWidget->topLevelItemCount() ; h++)
+    for (unsigned int h = 0 ; h < m_pTreeWidget->topLevelItemCount() ; h++)
     {
         QTreeWidgetItem *pHostItem = m_pTreeWidget->topLevelItem(h);
 
         QString hostName = pHostItem->text(NAME);
 
-        for(unsigned int j=0 ; j<pHostItem->childCount() ; j++)
+        for (unsigned int j = 0 ; j < pHostItem->childCount() ; j++)
         {
             QTreeWidgetItem *pJobItem = pHostItem->child(j);
 
             QString jobName = pJobItem->text(NAME);
             QString pidStr = pJobItem->text(PID);
 
-            if(pidStr.isEmpty())
+            if (pidStr.isEmpty())
                 continue;
 
             uint32_t pid = pidStr.toUInt();
@@ -737,7 +732,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
     StringVector hostList = root["HOSTS"].getMemberNames();
 
     // loop over hosts
-    for(StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
+    for (StringVector::iterator iter = hostList.begin(), endIter = hostList.end() ;
             endIter != iter ; ++iter)
     {
         const Json::Value &host(root["HOSTS"][*iter]);
@@ -750,7 +745,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
         m_pTreeWidget->addTopLevelItem(pHostItem);
 
         // loop over jobs host
-        for(unsigned int j=0 ; j<host.size() ; j++)
+        for (unsigned int j = 0 ; j < host.size() ; j++)
         {
             QStringList jobHeader;
             jobHeader << host[j]["NAME"].asString().c_str() << host[j]["PROGRAM"].asString().c_str() << host[j]["PID"].asString().c_str() << host[j]["STATUS"].asString().c_str() ;
@@ -770,7 +765,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
 
             const Json::Value &envJsonValue = host[j]["ENV"];
 
-            for(unsigned int e=0 ; e<envJsonValue.size() ; e++)
+            for (unsigned int e = 0 ; e < envJsonValue.size() ; e++)
             {
                 QString env(envJsonValue[e].asString().c_str());
 
@@ -788,7 +783,7 @@ void DQMJobInterfaceWidget::loadJson(const Json::Value &root)
 
             const Json::Value &argsJsonValue = host[j]["ARGS"];
 
-            for(unsigned int e=0 ; e<argsJsonValue.size() ; e++)
+            for (unsigned int e = 0 ; e < argsJsonValue.size() ; e++)
             {
                 QString arg(argsJsonValue[e].asString().c_str());
 
@@ -819,13 +814,13 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
     stateToColorMap["S"] = QColor(Qt::darkGreen); // interruptible sleep
     stateToColorMap["X"] = QColor(Qt::red); // interruptible sleep
 
-    for(unsigned int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
+    for (unsigned int i = 0 ; i < m_pTreeWidget->topLevelItemCount() ; i++)
     {
         QTreeWidgetItem *pHostItem = m_pTreeWidget->topLevelItem(i);
 
         std::string hostName = pHostItem->text(NAME).toStdString();
 
-        for(unsigned int j=0 ; j<pHostItem->childCount() ; j++)
+        for (unsigned int j = 0 ; j < pHostItem->childCount() ; j++)
         {
             QTreeWidgetItem *pJobItem = pHostItem->child(j);
 
@@ -833,14 +828,14 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
 
             bool found = false;
 
-            for(unsigned int v=0 ; v<value.size() ; v++)
+            for (unsigned int v = 0 ; v < value.size() ; v++)
             {
                 std::string vHost = value[v]["HOST"].asString();
                 std::string vJobName = value[v]["NAME"].asString();
                 uint32_t vJobPid = value[v]["PID"].asUInt();
                 std::string vJobStatus = value[v]["STATUS"].asString();
 
-                if(vHost == hostName && vJobName == jobName)
+                if (vHost == hostName && vJobName == jobName)
                 {
                     pJobItem->setText(STATUS, QString(vJobStatus.c_str()).trimmed());
                     pJobItem->setText(PID, QString::number(vJobPid));
@@ -850,7 +845,7 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
                 }
             }
 
-            if(!found)
+            if (!found)
             {
                 pJobItem->setText(STATUS, "X (dead)");
                 pJobItem->setText(PID, "");
@@ -859,7 +854,7 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
             // cases available in /proc/pid/status file
             QMap<QString, QColor>::iterator findIter = stateToColorMap.find(pJobItem->text(STATUS).at(0));
 
-			if(findIter != stateToColorMap.end())
+            if (findIter != stateToColorMap.end())
                 pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(findIter.value()));
             else
                 pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
@@ -874,7 +869,7 @@ void DQMJobInterfaceWidget::updateStatus(const Json::Value &value)
 
 void DQMJobInterfaceWidget::handleAutomaticModeButtonClicked()
 {
-	if(m_pJobInterface->started())
+    if (m_pJobInterface->started())
     {
         m_pJobInterface->stopUpdate();
         m_pAutomaticModeButton->setText("Start");
@@ -891,7 +886,7 @@ void DQMJobInterfaceWidget::handleAutomaticModeButtonClicked()
 
 void DQMJobInterfaceWidget::handleAutomaticModeValueChanged(int value)
 {
-	if(m_pJobInterface->started())
+    if (m_pJobInterface->started())
     {
         m_pJobInterface->stopUpdate();
         m_pJobInterface->startUpdate(value);
@@ -905,15 +900,15 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
     const Json::Value value = m_pJobInterface->processStatus(hostName.toStdString())["JOBS"];
     QTreeWidgetItem *pHostItem = 0;
 
-    for(unsigned int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
+    for (unsigned int i = 0 ; i < m_pTreeWidget->topLevelItemCount() ; i++)
     {
         QTreeWidgetItem *pItem = m_pTreeWidget->topLevelItem(i);
 
-        if(hostName == pItem->text(NAME))
+        if (hostName == pItem->text(NAME))
             pHostItem = pItem;
     }
 
-    if(!pHostItem)
+    if (!pHostItem)
         return;
 
     QMap<QString, QColor> stateToColorMap;
@@ -924,7 +919,7 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
     stateToColorMap["S"] = QColor(Qt::darkGreen); // interruptible sleep
     stateToColorMap["X"] = QColor(Qt::red); // interruptible sleep
 
-	for(unsigned int j=0 ; j<pHostItem->childCount() ; j++)
+    for (unsigned int j = 0 ; j < pHostItem->childCount() ; j++)
     {
         QTreeWidgetItem *pJobItem = pHostItem->child(j);
 
@@ -932,14 +927,14 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
 
         bool found = false;
 
-		for(unsigned int v=0 ; v<value.size() ; v++)
+        for (unsigned int v = 0 ; v < value.size() ; v++)
         {
             std::string vHost = value[v]["HOST"].asString();
             std::string vJobName = value[v]["NAME"].asString();
             uint32_t vJobPid = value[v]["PID"].asUInt();
             std::string vJobStatus = value[v]["STATUS"].asString();
 
-			if(vJobName == jobName)
+            if (vJobName == jobName)
             {
                 pJobItem->setText(STATUS, QString(vJobStatus.c_str()).trimmed());
                 pJobItem->setText(PID, QString::number(vJobPid));
@@ -949,7 +944,7 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
             }
         }
 
-		if(!found)
+        if (!found)
         {
             pJobItem->setText(STATUS, "X (dead)");
             pJobItem->setText(PID, "");
@@ -958,7 +953,7 @@ void DQMJobInterfaceWidget::updateStatus(const QString &hostName)
         // cases available in /proc/pid/status file
         QMap<QString, QColor>::iterator findIter = stateToColorMap.find(pJobItem->text(STATUS).at(0));
 
-		if(findIter != stateToColorMap.end())
+        if (findIter != stateToColorMap.end())
             pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(findIter.value()));
         else
             pJobItem->setData(STATUS, Qt::ForegroundRole, QBrush(Qt::black));
@@ -984,11 +979,11 @@ QStringList DQMJobInterfaceWidget::getNonRunningJobControls() const
 {
     QStringList missingJobControlList;
 
-	for(int i=0 ; i<m_pTreeWidget->topLevelItemCount() ; i++)
+    for (int i = 0 ; i < m_pTreeWidget->topLevelItemCount() ; i++)
     {
         QString hostName = m_pTreeWidget->topLevelItem(i)->text(0);
 
-		if(!this->jobControlExists(hostName.toStdString()))
+        if (!this->jobControlExists(hostName.toStdString()))
             missingJobControlList << hostName;
     }
 
@@ -1012,7 +1007,7 @@ void DQMJobInterfaceWidget::popupMissingJobControls(const QStringList &hostNameL
     QString message = "ERROR !\n\n"
                       "The following job controls are not running (or crashed) : \n";
 
-	for(int i=0 ; i<hostNameList.size() ; i++)
+    for (int i = 0 ; i < hostNameList.size() ; i++)
         message += "   * " + hostNameList.at(i) + "\n";
 
     message += "Please, check the job controls status on the different servers "
@@ -1020,6 +1015,145 @@ void DQMJobInterfaceWidget::popupMissingJobControls(const QStringList &hostNameL
 
     QMessageBox::warning(this, "Job controls not running !", message);
 }
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+
+DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pParent, QString jobHostName, QString jobName, QString pidStr ):
+    QWidget(NULL)
+{
+    m_pJobInterface = pParent;
+    setLayout(new QVBoxLayout());
+
+    QGroupBox *pLogFileBox = new QGroupBox();
+    QVBoxLayout *pLogVLayout = new QVBoxLayout();
+    pLogFileBox->setLayout(pLogVLayout);
+    layout()->addWidget(pLogFileBox);
+
+    m_pUpdateLogButton = new QPushButton("Update");
+    m_pUpdateLogButton->setMaximumWidth(150);
+    pLogVLayout->addWidget(m_pUpdateLogButton);
+    connect(m_pUpdateLogButton, SIGNAL(clicked()), this, SLOT(updateLogFile()));
+
+    m_pLogFileEdit = new QTextEdit();
+    pLogVLayout->addWidget(m_pLogFileEdit);
+
+    m_jobHostName = jobHostName;
+    m_pidStr = pidStr;
+    pid_t pid = m_pidStr.toInt();
+
+    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
+    m_pLogFileEdit->setWindowTitle(titleStr);
+    m_pLogFileEdit->setReadOnly(true);
+    m_pLogFileEdit->setTextInteractionFlags(m_pLogFileEdit->textInteractionFlags() | Qt::TextSelectableByKeyboard);
+
+    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
+
+    m_pSearchWidget = new QWidget();
+    // Tried some cosmetics ...
+    // m_pSearchWidget->setAttribute(Qt::WA_TranslucentBackground);
+    // m_pSearchWidget->setAttribute(Qt::WA_NoSystemBackground, false);
+    // m_pSearchWidget->setWindowFlags(Qt::FramelessWindowHint);
+    pLogVLayout->addWidget(m_pSearchWidget);
+
+    QHBoxLayout *pSearchHLayout = new QHBoxLayout();
+    m_pSearchWidget->setLayout(pSearchHLayout);
+
+    m_pSearchEdit = new QLineEdit();
+    pSearchHLayout->addWidget(m_pSearchEdit);
+
+    m_pCaseCheckBox = new QCheckBox("Case sensitive", this);
+    m_pCaseCheckBox->setCheckState(Qt::Checked);
+    pSearchHLayout->addWidget(m_pCaseCheckBox);
+
+
+    QIcon searchIcon = QIcon("icons/icon-arrow-down.png");
+    QPixmap pixMap = searchIcon.pixmap(QSize(65, 65));
+    QTransform transform = QTransform().rotate(180);
+    pixMap = pixMap.transformed(transform);
+    QIcon backSearchIcon = QIcon(pixMap);
+
+    m_pStartSearchButton = new QPushButton(searchIcon, "");
+    m_pStartBackSearchButton = new QPushButton(backSearchIcon, "");
+
+    pSearchHLayout->addWidget(m_pStartSearchButton);
+    pSearchHLayout->addWidget(m_pStartBackSearchButton);
+    pSearchHLayout->setAlignment(Qt::AlignTop);
+
+    m_pSearchWidget->hide();
+
+    QShortcut *searchShortcut = new QShortcut(QKeySequence::Find, this);
+    searchShortcut->setAutoRepeat(false);
+    connect(searchShortcut, SIGNAL(activated()), this, SLOT(showSearchWidget()));
+
+    QShortcut *closeShortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_W), this);
+    connect(closeShortcut, SIGNAL(activated()), this, SLOT(close()));
+}
+
+//-------------------------------------------------------------------------------------------------
+DQMJobInterfaceLogFileWidget::~DQMJobInterfaceLogFileWidget()
+{
+    // Nope
+}
+
+//-------------------------------------------------------------------------------------------------
+void DQMJobInterfaceLogFileWidget::updateLogFile()//QString jobHostName, pid_t pid, QTextCursor cursor)
+{
+    // TODO Do not move cursor to end of file when updating logFile
+    pid_t pid = m_pidStr.toInt();
+    // m_cursor = m_pLogFileEdit->textCursor();
+    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( m_jobHostName.toStdString(), pid).c_str() );
+    m_pLogFileEdit->setFocus();
+    // m_pLogFileEdit->setTextCursor(m_cursor);
+    // m_cursor.movePosition(QTextCursor::NoMove);
+
+}
+
+//-------------------------------------------------------------------------------------------------
+void DQMJobInterfaceLogFileWidget::showSearchWidget()
+{
+    if ( !m_pSearchWidget->isVisible())
+    {
+        m_pSearchWidget->show();
+        m_pSearchEdit->setFocus();
+    }
+    else
+    {
+        m_pSearchWidget->hide();
+        return;
+    }
+
+    // Either click on DownArrow or hit ENTER key to initiate search
+    connect(m_pSearchEdit, SIGNAL(returnPressed()), m_pStartSearchButton, SLOT(click()));
+    connect(m_pStartSearchButton, SIGNAL(clicked()), this, SLOT(searchString()));
+
+    //Backward search
+   // Either click on UpArrow or hit SHIFT+ENTER keys to initiate backwards search
+
+    connect(new QShortcut(Qt::SHIFT + Qt::Key_Enter, m_pSearchEdit), SIGNAL(activated()), m_pStartBackSearchButton, SLOT(click()));
+    connect(m_pStartBackSearchButton, SIGNAL(clicked()), this, SLOT(searchString()));
+}
+
+//-------------------------------------------------------------------------------------------------
+void DQMJobInterfaceLogFileWidget::searchString()
+{
+    m_caseFlags = 0; // resetFlags
+    QPushButton *pButton = qobject_cast<QPushButton*>(sender());
+    if (NULL == pButton)
+        return;
+
+    else if (pButton == m_pStartBackSearchButton)
+        m_caseFlags |= QTextDocument::FindBackward;
+
+    if (Qt::Checked == m_pCaseCheckBox->checkState())
+        m_caseFlags |= QTextDocument::FindCaseSensitively;
+
+    QPalette *pPalette = new QPalette(Qt::yellow);
+    pPalette->setColor(QPalette::Highlight, Qt::yellow);
+    m_pLogFileEdit->setPalette(*pPalette);
+    m_pLogFileEdit->find( m_pSearchEdit->text(), m_caseFlags);
+}
+
 
 }
 
