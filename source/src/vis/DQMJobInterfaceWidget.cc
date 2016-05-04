@@ -1066,8 +1066,8 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
     m_pCaseCheckBox->setCheckState(Qt::Checked);
     pSearchHLayout->addWidget(m_pCaseCheckBox);
 
-
-    QIcon searchIcon = QIcon("icons/icon-arrow-down.png");
+    QString iconDir = QString(DQMViz_DIR) + "/icons/";
+    QIcon searchIcon = QIcon(iconDir + "icon-arrow-down.png");
     QPixmap pixMap = searchIcon.pixmap(QSize(65, 65));
     QTransform transform = QTransform().rotate(180);
     pixMap = pixMap.transformed(transform);
@@ -1097,15 +1097,12 @@ DQMJobInterfaceLogFileWidget::~DQMJobInterfaceLogFileWidget()
 }
 
 //-------------------------------------------------------------------------------------------------
-void DQMJobInterfaceLogFileWidget::updateLogFile()//QString jobHostName, pid_t pid, QTextCursor cursor)
+void DQMJobInterfaceLogFileWidget::updateLogFile()
 {
-    // TODO Do not move cursor to end of file when updating logFile
     pid_t pid = m_pidStr.toInt();
-    // m_cursor = m_pLogFileEdit->textCursor();
     m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( m_jobHostName.toStdString(), pid).c_str() );
+    m_pLogFileEdit->moveCursor(QTextCursor::End);
     m_pLogFileEdit->setFocus();
-    // m_pLogFileEdit->setTextCursor(m_cursor);
-    // m_cursor.movePosition(QTextCursor::NoMove);
 
 }
 
@@ -1124,13 +1121,12 @@ void DQMJobInterfaceLogFileWidget::showSearchWidget()
     }
 
     // Either click on DownArrow or hit ENTER key to initiate search
-    connect(m_pSearchEdit, SIGNAL(returnPressed()), m_pStartSearchButton, SLOT(click()));
+    connect(new QShortcut(Qt::Key_Return, m_pSearchEdit), SIGNAL(activated()), m_pStartSearchButton, SLOT(click()));
     connect(m_pStartSearchButton, SIGNAL(clicked()), this, SLOT(searchString()));
 
     //Backward search
-   // Either click on UpArrow or hit SHIFT+ENTER keys to initiate backwards search
-
-    connect(new QShortcut(Qt::SHIFT + Qt::Key_Enter, m_pSearchEdit), SIGNAL(activated()), m_pStartBackSearchButton, SLOT(click()));
+    // Either click on UpArrow or hit SHIFT+ENTER keys to initiate backwards search
+    connect(new QShortcut(Qt::SHIFT + Qt::Key_Return, m_pSearchEdit), SIGNAL(activated()), m_pStartBackSearchButton, SLOT(click()));
     connect(m_pStartBackSearchButton, SIGNAL(clicked()), this, SLOT(searchString()));
 }
 
@@ -1151,7 +1147,18 @@ void DQMJobInterfaceLogFileWidget::searchString()
     QPalette *pPalette = new QPalette(Qt::yellow);
     pPalette->setColor(QPalette::Highlight, Qt::yellow);
     m_pLogFileEdit->setPalette(*pPalette);
-    m_pLogFileEdit->find( m_pSearchEdit->text(), m_caseFlags);
+    bool found = m_pLogFileEdit->find( m_pSearchEdit->text(), m_caseFlags);
+    if (!found)
+    {
+        QTextCursor::MoveOperation move;
+        if (pButton == m_pStartBackSearchButton)
+            move = QTextCursor::End;
+        else
+            move = QTextCursor::Start;
+
+        m_pLogFileEdit->moveCursor(move);
+        m_pLogFileEdit->find( m_pSearchEdit->text(), m_caseFlags);
+    }
 }
 
 
