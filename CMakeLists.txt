@@ -106,6 +106,7 @@ ADD_SUBDIRECTORY( ./source )
 
 # ----- Install icons -----
 INSTALL_DIRECTORY( icons DESTINATION . )
+INSTALL ( DIRECTORY cmake DESTINATION . PATTERN "*.in" EXCLUDE )
 
 # ----- display some variables and write them to cache -----
 DISPLAY_STD_VARIABLES()
