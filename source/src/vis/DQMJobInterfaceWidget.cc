@@ -1043,6 +1043,7 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
 
     m_pLogFileEdit = new QTextEdit();
     pLogVLayout->addWidget(m_pLogFileEdit);
+    connect(new QShortcut(Qt::CTRL + Qt::Key_R, m_pLogFileEdit), SIGNAL(activated()), m_pUpdateLogButton, SLOT(click()));
 
     m_jobHostName = jobHostName;
     m_pidStr = pidStr;
