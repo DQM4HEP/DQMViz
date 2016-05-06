@@ -205,6 +205,10 @@ private:
      */
     void popupMissingJobControls(const QStringList &hostName);
 
+    /**
+     */
+    void closeEvent(QCloseEvent* closeEvent);
+
 private:
 
     DQMJobInterface        *m_pJobInterface;

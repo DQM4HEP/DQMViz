@@ -385,7 +385,13 @@ void DQMJobInterfaceWidget::openLogFile()
 }
 
 //-------------------------------------------------------------------------------------------------
+void DQMJobInterfaceWidget::closeEvent(QCloseEvent* closeEvent)
+{
+    closeEvent->accept();
+    qApp->quit();
+}
 
+//-------------------------------------------------------------------------------------------------
 void DQMJobInterfaceWidget::startHostJobs()
 {
     QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
