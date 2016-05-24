@@ -380,6 +380,8 @@ void DQMJobInterfaceWidget::openLogFile()
 
     DQMJobInterfaceLogFileWidget *pLogFileWidget = new DQMJobInterfaceLogFileWidget(m_pJobInterface, jobHostName, jobName, pidStr);
     pLogFileWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
+    pLogFileWidget->setWindowTitle(titleStr);
     pLogFileWidget->resize(1000, 700);
     pLogFileWidget->show();
 }
@@ -1049,11 +1051,8 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
     m_pidStr = pidStr;
     pid_t pid = m_pidStr.toInt();
 
-    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
-    m_pLogFileEdit->setWindowTitle(titleStr);
     m_pLogFileEdit->setReadOnly(true);
     m_pLogFileEdit->setTextInteractionFlags(m_pLogFileEdit->textInteractionFlags() | Qt::TextSelectableByKeyboard);
-
     m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
 
     m_pSearchWidget = new QWidget();
