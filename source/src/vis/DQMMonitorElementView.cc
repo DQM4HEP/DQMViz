@@ -5,22 +5,22 @@
  * Creation date : lun. oct. 12 2015
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
@@ -1021,14 +1021,17 @@ void DQMMonitorElementNavigator::showContextMenu(const QPoint &point)
 
 void DQMMonitorElementNavigator::drawSelectedMonitorElements()
 {
-	QAction *pAction = qobject_cast<QAction*>(sender());
-
-	if(!pAction)
-		return;
-
-	int areaIndex = pAction->data().toInt();
-	QList<QTreeWidgetItem*> selectedMonitorElements(this->getSelectedMonitorElementItems());
 	DQMCanvasView *pCanvasView = this->getMonitoring()->getView()->getCanvasView();
+	int areaIndex = -1 ;
+
+	// If slot triggered by an action get the areaIndex from its data
+	if (QAction *pAction = qobject_cast<QAction*>(sender()))
+		areaIndex = pAction->data().toInt();
+	// Otherwise take the current areaIndex (slot executed by either double click or returnKey)
+	else
+		areaIndex = pCanvasView->getCanvasAreaIndex(pCanvasView->getCurrentCanvasArea());
+
+	QList<QTreeWidgetItem*> selectedMonitorElements = this->selectedItems();
 
 	if(areaIndex < 0)
 	{
@@ -1044,9 +1047,26 @@ void DQMMonitorElementNavigator::drawSelectedMonitorElements()
 
 	int nDrawElements = 0;
 
+	// Handle selected items instead of only the current item
+	QSet<QTreeWidgetItem *> monitorElementSet;
+
 	for(int i=0 ; i<selectedMonitorElements.count() ; i++)
 	{
 		QTreeWidgetItem *pMonitorElementItem = selectedMonitorElements.at(i);
+
+		if (this->isDirectoryItem(pMonitorElementItem))
+		{
+			QList<QTreeWidgetItem *> monitorElementItemList;
+			this->getRecursiveMonitorElements(pMonitorElementItem, monitorElementItemList, false);
+			monitorElementSet += QSet<QTreeWidgetItem *>::fromList(monitorElementItemList);
+		}
+		else
+			monitorElementSet << pMonitorElementItem;
+	}
+
+	for ( auto iter = monitorElementSet.begin(), endIter = monitorElementSet.end(); iter != endIter; ++iter)
+	{
+		QTreeWidgetItem *pMonitorElementItem = *iter;
 
 		QString collectorName(this->getCollectorName());
 		QString moduleName(this->getModuleName(pMonitorElementItem));
@@ -1064,6 +1084,9 @@ void DQMMonitorElementNavigator::drawSelectedMonitorElements()
 			continue;
 
 		pCanvasView->drawInArea(pMonitorElement, areaIndex);
+		pMonitorElementItem->setCheckState(0, Qt::Checked);
+		this->setFocus(Qt::OtherFocusReason);
+
 		nDrawElements++;
 	}
 
@@ -1088,48 +1111,7 @@ void DQMMonitorElementNavigator::handleItemDoubleClick(QTreeWidgetItem *pTreeWid
 	if(!this->isMonitorElementItem(pTreeWidgetItem))
 		return;
 
-	QList<QTreeWidgetItem*> selectedMonitorElements(this->getSelectedMonitorElementItems());
-
-    DQMCanvasView *pCanvasView = this->getMonitoring()->getView()->getCanvasView();
-
-	int nDrawElements = 0;
-
-	for(int i=0 ; i<selectedMonitorElements.count() ; i++)
-	{
-		QTreeWidgetItem *pMonitorElementItem = selectedMonitorElements.at(i);
-
-		QString collectorName(this->getCollectorName());
-		QString moduleName(this->getModuleName(pMonitorElementItem));
-		QString fullPathName(this->getFullPathName(pMonitorElementItem));
-		QString monitorElementName(pMonitorElementItem->text(0));
-
-		DQMGuiMonitorElement *pMonitorElement =
-				this->getMonitoring()->getModel()->findMonitorElement(
-						collectorName.toStdString(),
-						moduleName.toStdString(),
-						fullPathName.toStdString(),
-						monitorElementName.toStdString());
-
-		if(!pMonitorElement)
-			continue;
-
-		pCanvasView->drawInCurrentArea(pMonitorElement);
-		pMonitorElementItem->setCheckState(0, Qt::Checked);
-		nDrawElements++;
-	}
-
-	if(nDrawElements == selectedMonitorElements.count())
-	{
-		this->getMonitoring()->getController()->log(MESSAGE, QString("Number of drawn monitor elements : %1").arg(nDrawElements).toStdString());
-	}
-	else if(nDrawElements < selectedMonitorElements.count() && nDrawElements != 0)
-	{
-		this->getMonitoring()->getController()->log(WARNING, QString("Monitor elements drawn (%1 success, %2 failed)").arg(nDrawElements).arg(selectedMonitorElements.count()-nDrawElements).toStdString());
-	}
-	else
-	{
-		this->getMonitoring()->getController()->log(ERROR, QString("No monitor elements drawn ! (%1 requested)").arg(selectedMonitorElements.count()).toStdString());
-	}
+	this->drawSelectedMonitorElements();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1137,61 +1119,9 @@ void DQMMonitorElementNavigator::handleItemDoubleClick(QTreeWidgetItem *pTreeWid
 void DQMMonitorElementNavigator::keyPressEvent( QKeyEvent * pKeyEvent )
 {
     if(pKeyEvent->key() == Qt::Key_Space || pKeyEvent->key() == Qt::Key_Return )
-    {
-
-		// Handle selected items instead of only the current item
-		QList<QTreeWidgetItem *> selectedItems = this->selectedItems();
-		QSet<QTreeWidgetItem *> monitorElementItems;
-
-		// first, get all monitor elements
-		for(int i = 0; i < selectedItems.count(); i++)
-		{
-			QTreeWidgetItem *pTreeWidgetItem = selectedItems.at(i);
-
-			if(this->isDirectoryItem(pTreeWidgetItem))
-			{
-				QList<QTreeWidgetItem *> monitorElementItemList;
-				this->getRecursiveMonitorElements(pTreeWidgetItem, monitorElementItemList, false);
-				monitorElementItems += QSet<QTreeWidgetItem *>::fromList(monitorElementItemList);
-			}
-			else
-				monitorElementItems << pTreeWidgetItem;
-		}
-
-		DQMCanvasView *pCanvasView = this->getMonitoring()->getView()->getCanvasView();
-
-		QSet<QTreeWidgetItem*>::iterator iter = monitorElementItems.begin();
-
-		while(iter != monitorElementItems.end())
-		{
-			QTreeWidgetItem *pTreeWidgetItem = *iter;
-
-			QString collectorName(this->getCollectorName());
-			QString moduleName(this->getModuleName(pTreeWidgetItem));
-			QString fullPathName(this->getFullPathName(pTreeWidgetItem));
-			QString monitorElementName(pTreeWidgetItem->text(0));
-
-			DQMGuiMonitorElement *pMonitorElement =
-					this->getMonitoring()->getModel()->findMonitorElement(
-							collectorName.toStdString(),
-							moduleName.toStdString(),
-							fullPathName.toStdString(),
-							monitorElementName.toStdString());
-
-			if(!pMonitorElement)
-				continue;
-
-			pCanvasView->drawInCurrentArea(pMonitorElement);
-			pTreeWidgetItem->setCheckState(0, Qt::Checked);
-
-			this->setFocus(Qt::OtherFocusReason);
-			++iter;
-		}
-    }
-    else
-    {
-        return QTreeView::keyPressEvent(pKeyEvent);
-    }
+			this->drawSelectedMonitorElements();
+		else
+      return QTreeView::keyPressEvent(pKeyEvent);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1269,7 +1199,7 @@ void DQMMonitorElementNavigator::handleItemExpanded(QTreeWidgetItem *pTreeWidget
 
 //-------------------------------------------------------------------------------------------------
 
-void DQMMonitorElementNavigator::handleItemCollapsed(QTreeWidgetItem *pTreeWidgetItem)
+void DQMMonitorElementNavigator::handleItemCollapsed(QTreeWidgetItem * pTreeWidgetItem)
 {
 	if(this->isDirectoryItem(pTreeWidgetItem))
 	{
@@ -1411,7 +1341,7 @@ DQMMonitorElementView::DQMMonitorElementView(DQMMonitoring *pMonitoring) :
 
 //-------------------------------------------------------------------------------------------------
 
-DQMMonitorElementView::~DQMMonitorElementView() 
+DQMMonitorElementView::~DQMMonitorElementView()
 {
 	/* nop */
 }
@@ -1741,5 +1671,5 @@ void DQMMonitorElementView::handleMonitorElementDeletion()
 
 }
 
-} 
+}
 
