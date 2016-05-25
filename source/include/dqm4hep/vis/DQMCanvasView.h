@@ -35,17 +35,69 @@
 
 // -- qt headers
 #include <QWidget>
+#include <QTabWidget>
+#include <QTabBar>
 #include <QMenu>
 
 namespace dqm4hep
 {
 
 class DQMMonitoring;
-class DQMTabWidget;
 class DQMCanvasArea;
 class DQMCanvas;
 class DQMGuiMonitorElement;
 
+/** DQMTabWidget class
+ */
+class DQMTabBar : public QTabBar
+{
+public:
+  /** Constructor
+   */
+  DQMTabBar(QWidget *pParent = 0):QTabBar(pParent) {};
+
+  /** Destructor
+   */
+  virtual ~DQMTabBar(){};
+
+  /** Rename the canvas area indexed by 'index' with name 'newAreaName'
+   */
+  void renameCanvasArea(int index, const std::string &newAreaName);
+
+  /** Rename the canvas area given by 'index'.
+   *  Get the area name from an input text dialog
+   */
+  void renameCanvasAreaFromInputDialog(int index);
+
+  /** Handle double click on the tab
+   */
+  void mouseDoubleClickEvent(QMouseEvent *event);
+};
+
+//-------------------------------------------------------------------------------------------------
+/** DQMTabWidget class
+ */
+class DQMTabWidget : public QTabWidget
+{
+public:
+  /** Constructor
+   */
+  DQMTabWidget(QWidget *pParent = 0);
+  
+  /** Destructor
+   */
+  virtual ~DQMTabWidget(){};
+
+  /** Get the tab bar
+   */
+  DQMTabBar *tabBar() const {return m_pTabBar;}
+  
+private:
+     DQMTabBar* m_pTabBar;
+
+};
+
+//-------------------------------------------------------------------------------------------------
 /** DQMCanvasView class
  */ 
 class DQMCanvasView : public QWidget, public DQMXmlIO
@@ -129,10 +181,6 @@ public slots:
 	 */
 	virtual void removeCanvasArea(int index);
 
-	/** Rename the canvas area indexed by 'index' with name 'newAreaName'
-	 */
-	virtual void renameCanvasArea(int index, const std::string &newAreaName);
-
 	/** Clear the area indexed by 'index'
 	 */
 	virtual void clearArea(int index);
@@ -161,11 +209,6 @@ protected:
     /** Create the context menu
      */
     virtual QMenu *createContextMenu() const;
-
-    /** Rename the canvas area given by 'index'.
-     *  Get the area name from an input text dialog
-     */
-    void renameCanvasAreaFromInputDialog(int index);
 
 private slots:
 	/** Handle rename area action triggered by context menu

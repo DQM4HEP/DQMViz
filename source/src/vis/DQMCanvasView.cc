@@ -37,7 +37,6 @@
 #include "dqm4hep/vis/DQMGuiMonitorElement.h"
 
 #include <QAction>
-#include <QTabBar>
 #include <QInputDialog>
 #include <QString>
 #include <QLineEdit>
@@ -48,34 +47,40 @@
 namespace dqm4hep
 {
 
-/** DQMTabWidget class
- */
-class DQMTabWidget : public QTabWidget
+void DQMTabBar::renameCanvasArea(int index, const std::string &newAreaName)
 {
-public:
-  /** Constructor
-   */
-  DQMTabWidget(QWidget *pParent = 0);
-
-  /** Get the tab bar
-   */
-  QTabBar *tabBar() const;
-};
-
-//-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-
-DQMTabWidget::DQMTabWidget(QWidget *pParent)
-  : QTabWidget(pParent)
-{
-  /* nop */
+  this->setTabText(index, newAreaName.c_str());
 }
 
 //-------------------------------------------------------------------------------------------------
-
-QTabBar *DQMTabWidget::tabBar() const
+void DQMTabBar::renameCanvasAreaFromInputDialog(int index)
 {
-  return QTabWidget::tabBar();
+  bool ok = false;
+  QString oldAreaName = this->tabText(index);
+
+  QString newAreaName = QInputDialog::getText(this, "New canvas area name",
+                        "", QLineEdit::Normal,
+                        oldAreaName, &ok);
+
+  if (ok)
+    this->renameCanvasArea(index, newAreaName.toStdString());
+}
+
+//-------------------------------------------------------------------------------------------------
+void DQMTabBar::mouseDoubleClickEvent(QMouseEvent *event)
+{
+  const QPoint pos = this->mapFromGlobal(QCursor::pos());
+  int index = this->tabAt(pos);
+  this->renameCanvasAreaFromInputDialog(index);
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+DQMTabWidget::DQMTabWidget(QWidget *pParent) :
+  QTabWidget(pParent)
+{
+  m_pTabBar = new DQMTabBar();
+  setTabBar (m_pTabBar);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -378,8 +383,8 @@ void DQMCanvasView::createCanvasAreaAndSetCurrent(const std::string &areaName)
   this->createCanvasArea(areaName);
 	this->setCurrentCanvasArea(m_pTabWidget->count()-1);
 
-	if( areaName.empty() )
-		this->renameCanvasAreaFromInputDialog(m_pTabWidget->count()-1);
+  if ( areaName.empty() )
+    m_pTabWidget->tabBar()->renameCanvasAreaFromInputDialog(m_pTabWidget->count() - 1);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -423,13 +428,6 @@ void DQMCanvasView::removeCanvasArea(int index)
 
 	if(m_pTabWidget->count() == 0)
     this->createCanvasArea();
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMCanvasView::renameCanvasArea(int index, const std::string &newAreaName)
-{
-  m_pTabWidget->setTabText(index, newAreaName.c_str());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -544,32 +542,8 @@ bool DQMCanvasView::eventFilter(QObject *pObject, QEvent *pEvent)
     this->showContextMenu(this->cursor().pos());
     return true;
   }
-  // Rename a tab if DoubleClick on it
-  else if (pObject == m_pTabWidget->tabBar() && pEvent->type() == QEvent::MouseButtonDblClick)
-  {
-    QTabBar *pTabBar = m_pTabWidget->tabBar();
-    QPoint p = pTabBar->mapFromGlobal(QCursor::pos());
-
-    int index = pTabBar->tabAt(p);
-    this->renameCanvasAreaFromInputDialog(index);
-  }
 
   return QObject::eventFilter(pObject, pEvent);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DQMCanvasView::renameCanvasAreaFromInputDialog(int index)
-{
-  bool ok = false;
-  QString oldAreaName = m_pTabWidget->tabText(index);
-
-  QString newAreaName = QInputDialog::getText(this, "New canvas area name",
-                        "", QLineEdit::Normal,
-                        oldAreaName, &ok);
-
-    if(ok)
-    this->renameCanvasArea(index, newAreaName.toStdString());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -583,7 +557,7 @@ void DQMCanvasView::handleRenameAreaActionTriggered()
 
   int index = pAction->data().toInt();
 
-  this->renameCanvasAreaFromInputDialog(index);
+  m_pTabWidget->tabBar()->renameCanvasAreaFromInputDialog(index);
 }
 
 //-------------------------------------------------------------------------------------------------
