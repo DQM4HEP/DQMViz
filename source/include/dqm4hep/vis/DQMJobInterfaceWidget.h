@@ -283,6 +283,9 @@ private:
     QString                  m_jobHostName;
     QTextEdit               *m_pLogFileEdit;
     QPushButton             *m_pUpdateLogButton;
+    QLineEdit               *m_pLineNumberEdit;
+    QCheckBox               *m_pFullLogCheckBox;
+    unsigned int             m_linesToTail;
     QTextCursor              m_cursor;
     QWidget                 *m_pSearchWidget;
     QLineEdit               *m_pSearchEdit;
@@ -304,6 +307,10 @@ private slots:
     /**
      */
     void updateLogFile();
+
+    /**
+     */
+    void handleFullLogToggle(bool checked);
 };
 
 }
