@@ -97,6 +97,7 @@ DQMCanvas *DQMRootWidget::getCanvas() const
 void DQMRootWidget::mouseDoubleClickEvent(QMouseEvent *e)
 {
 	TQtWidget::mouseDoubleClickEvent(e);
+  this->queryUpdate();
 	this->postDraw();
 }
 
