@@ -1099,7 +1099,6 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
 //-------------------------------------------------------------------------------------------------
 DQMJobInterfaceLogFileWidget::~DQMJobInterfaceLogFileWidget()
 {
-    m_pLineNumberEdit->clear();
     m_pSearchEdit->clear();
     m_pLogFileEdit->clear();
 }
