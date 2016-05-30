@@ -97,8 +97,7 @@ int main(int argc, char* argv[])
 	log4cxx_file = loggerConfigArg.getValue();
 	log4cxx::xml::DOMConfigurator::configure(log4cxx_file);
 
-	if( verbosityArg.isSet() )
-		dqmMainLogger->setLevel( log4cxx::Level::toLevel( verbosityArg.getValue() ) );
+	dqmMainLogger->setLevel( log4cxx::Level::toLevel( verbosityArg.getValue() ) );
 
 	QApplication app(argc, argv);
 
