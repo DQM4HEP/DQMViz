@@ -276,24 +276,16 @@ void DQMJobInterfaceWidget::contextMenuEvent(QContextMenuEvent *event)
         if (pCurrentItem->text(PID).toInt())
             m_pOpenLogFileAction->setEnabled(true);
 
-        if ( status == "D" || status == "X") //Dead
+        if ( status == "X") //Dead
         {
+            m_pStartJobAction->setEnabled(true);
             if (pCurrentItem->text(PID).toInt())
                 m_pRestartJobAction->setEnabled(true);
-            else
-                m_pStartJobAction->setEnabled(true);
-        }
-
-        else if ( status != "Z" && // Zombie
-                  status != "T"     // Traced or Stopped
-                )
-        {
-            m_pKillJobAction->setEnabled(true);
-            m_pRestartJobAction->setEnabled(true);
         }
         else
         {
-            m_pStartJobAction->setEnabled(true);
+            m_pKillJobAction->setEnabled(true);
+            m_pRestartJobAction->setEnabled(true);
         }
     }
 
@@ -365,25 +357,33 @@ void DQMJobInterfaceWidget::reloadJsonFile()
 
 void DQMJobInterfaceWidget::openLogFile()
 {
-    QTreeWidgetItem* pSelectedItem = m_pTreeWidget->currentItem();
-
-    if ( ! pSelectedItem )
+    
+    QList<QTreeWidgetItem*> selectedItems(m_pTreeWidget->selectedItems());
+    if ( selectedItems.isEmpty() )
         return;
 
-    QString pidStr = pSelectedItem->text(PID);
-    QString jobName = pSelectedItem->text(NAME);
+    for (int i = 0 ; i < selectedItems.size() ; i++)
+    {
+        QTreeWidgetItem* pSelectedItem = m_pTreeWidget->currentItem();
 
-    if ( pidStr.isEmpty() || jobName.isEmpty() )
-        return;
+        if ( ! pSelectedItem )
+            return;
 
-    QString jobHostName = pSelectedItem->parent()->text(NAME);
+        QString pidStr = pSelectedItem->text(PID);
+        QString jobName = pSelectedItem->text(NAME);
 
-    DQMJobInterfaceLogFileWidget *pLogFileWidget = new DQMJobInterfaceLogFileWidget(m_pJobInterface, jobHostName, jobName, pidStr);
-    pLogFileWidget->setAttribute(Qt::WA_DeleteOnClose, true);
-    QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
-    pLogFileWidget->setWindowTitle(titleStr);
-    pLogFileWidget->resize(1000, 700);
-    pLogFileWidget->show();
+        if ( pidStr.isEmpty() || jobName.isEmpty() )
+            return;
+
+        QString jobHostName = pSelectedItem->parent()->text(NAME);
+
+        DQMJobInterfaceLogFileWidget *pLogFileWidget = new DQMJobInterfaceLogFileWidget(m_pJobInterface, jobHostName, jobName, pidStr);
+        pLogFileWidget->setAttribute(Qt::WA_DeleteOnClose, true);
+        QString titleStr = "LogFile for PID " + pidStr + ", program '" + jobName + "' on host '" + jobHostName + "'" ;
+        pLogFileWidget->setWindowTitle(titleStr);
+        pLogFileWidget->resize(1000, 700);
+        pLogFileWidget->show();
+    }
 }
 
 //-------------------------------------------------------------------------------------------------
