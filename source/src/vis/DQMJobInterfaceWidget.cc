@@ -278,9 +278,10 @@ void DQMJobInterfaceWidget::contextMenuEvent(QContextMenuEvent *event)
 
         if ( status == "X") //Dead
         {
-            m_pStartJobAction->setEnabled(true);
             if (pCurrentItem->text(PID).toInt())
                 m_pRestartJobAction->setEnabled(true);
+            else
+                m_pStartJobAction->setEnabled(true);
         }
         else
         {
@@ -364,7 +365,7 @@ void DQMJobInterfaceWidget::openLogFile()
 
     for (int i = 0 ; i < selectedItems.size() ; i++)
     {
-        QTreeWidgetItem* pSelectedItem = m_pTreeWidget->currentItem();
+        QTreeWidgetItem* pSelectedItem = selectedItems.at(i);
 
         if ( ! pSelectedItem )
             return;
