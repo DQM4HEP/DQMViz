@@ -1034,14 +1034,36 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
     setLayout(new QVBoxLayout());
 
     QGroupBox *pLogFileBox = new QGroupBox();
+    QGroupBox *pOptionBox = new QGroupBox();
+    
     QVBoxLayout *pLogVLayout = new QVBoxLayout();
     pLogFileBox->setLayout(pLogVLayout);
+
+    QGridLayout *pOptionGridLayout = new QGridLayout();
+    // QHBoxLayout *pUpdateHLayout = new QHBoxLayout();
+    pOptionBox->setLayout(pOptionGridLayout);
+
+    layout()->addWidget(pOptionBox);
     layout()->addWidget(pLogFileBox);
+
+    QLabel* pTailLabel = new QLabel("Lines to tail: ");
+    pOptionGridLayout->addWidget(pTailLabel, 0, 0, Qt::AlignLeft);
+    m_pLineNumberEdit = new QLineEdit("100");
+    m_pLineNumberEdit->setMaximumWidth(50);
+    m_pLineNumberEdit->setAlignment(Qt::AlignHCenter);   
+    pOptionGridLayout->addWidget(m_pLineNumberEdit, 0, 1, Qt::AlignLeft);
 
     m_pUpdateLogButton = new QPushButton("Update");
     m_pUpdateLogButton->setMaximumWidth(150);
-    pLogVLayout->addWidget(m_pUpdateLogButton);
+    pOptionGridLayout->addWidget(m_pUpdateLogButton, 0, 3, Qt::AlignLeft);
+    pOptionGridLayout->setColumnStretch(3,1); // Push all widget to the left
     connect(m_pUpdateLogButton, SIGNAL(clicked()), this, SLOT(updateLogFile()));
+    
+    m_pFullLogCheckBox = new QCheckBox("Open full logFile", this);
+    m_pFullLogCheckBox->setCheckState(Qt::Unchecked);
+    pOptionGridLayout->addWidget(m_pFullLogCheckBox, 1, 0, 2, 2, Qt::AlignLeft);
+    connect(m_pFullLogCheckBox, SIGNAL(toggled(bool)), this, SLOT(handleFullLogToggle(bool)));
+    
 
     m_pLogFileEdit = new QTextEdit();
     pLogVLayout->addWidget(m_pLogFileEdit);
@@ -1053,7 +1075,10 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
 
     m_pLogFileEdit->setReadOnly(true);
     m_pLogFileEdit->setTextInteractionFlags(m_pLogFileEdit->textInteractionFlags() | Qt::TextSelectableByKeyboard);
-    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid).c_str() );
+    
+    // By default, tail the last 100lines of the log file 
+    m_linesToTail = m_pLineNumberEdit->text().toInt();
+    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( jobHostName.toStdString(), pid, m_linesToTail).c_str() );
 
     m_pSearchWidget = new QWidget();
     // Tried some cosmetics ...
@@ -1097,6 +1122,26 @@ DQMJobInterfaceLogFileWidget::DQMJobInterfaceLogFileWidget(DQMJobInterface *pPar
 }
 
 //-------------------------------------------------------------------------------------------------
+void DQMJobInterfaceLogFileWidget::handleFullLogToggle(bool checked)
+{
+    //activate/deactivate lineNumber edit if fullLogCheckBox is unchecked/checked 
+    m_pLineNumberEdit->setEnabled(!checked);
+    QPalette palette;
+    if (checked)
+    {
+        palette.setColor(QPalette::Base,Qt::lightGray);
+        m_pLineNumberEdit->setPalette(palette);
+        m_pLineNumberEdit->setText("");
+    }    
+    else
+    {
+        palette.setColor(QPalette::Base,Qt::white);
+        m_pLineNumberEdit->setPalette(palette);
+        m_pLineNumberEdit->setText("100");
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
 DQMJobInterfaceLogFileWidget::~DQMJobInterfaceLogFileWidget()
 {
     m_pSearchEdit->clear();
@@ -1107,7 +1152,13 @@ DQMJobInterfaceLogFileWidget::~DQMJobInterfaceLogFileWidget()
 void DQMJobInterfaceLogFileWidget::updateLogFile()
 {
     pid_t pid = m_pidStr.toInt();
-    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( m_jobHostName.toStdString(), pid).c_str() );
+    
+    if (m_pFullLogCheckBox->isChecked())
+        m_linesToTail = 0;
+    else
+        m_linesToTail = m_pLineNumberEdit->text().toInt();
+
+    m_pLogFileEdit->setText( m_pJobInterface->queryLogFile( m_jobHostName.toStdString(), pid,m_linesToTail).c_str() );
     m_pLogFileEdit->moveCursor(QTextCursor::End);
     m_pLogFileEdit->setFocus();
 
