@@ -32,7 +32,7 @@ namespace dqm4hep
 {
 
 DQMJobInterface::DQMJobInterface() :
-		DimJobInterface(),
+		DimDQMJobInterface(),
 		m_started(false)
 {
 	/* nop */
@@ -57,9 +57,9 @@ bool DQMJobInterface::started() const
 void DQMJobInterface::startUpdate(int nSeconds)
 {
 	if(m_started)
-		DimJobInterface::stopTimer();
+		DimDQMJobInterface::stopTimer();
 
-	DimJobInterface::startTimer(nSeconds);
+	DimDQMJobInterface::startTimer(nSeconds);
 	m_started = true;
 }
 
@@ -68,7 +68,7 @@ void DQMJobInterface::startUpdate(int nSeconds)
 void DQMJobInterface::stopUpdate()
 {
 	if(m_started)
-		DimJobInterface::stopTimer();
+		DimDQMJobInterface::stopTimer();
 
 	m_started = false;
 }

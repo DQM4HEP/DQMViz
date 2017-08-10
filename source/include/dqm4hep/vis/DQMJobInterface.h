@@ -30,7 +30,7 @@
 #define DQMJOBINTERFACE_H
 
 // -- dimjc headers
-#include "DimJobInterface.h"
+#include "DimDQMJobInterface.h"
 
 // -- qt headers
 #include <QObject>
@@ -40,7 +40,7 @@ namespace dqm4hep
 
 /** DQMJobInterface class
  */
-class DQMJobInterface : public QObject, public DimJobInterface
+class DQMJobInterface : public QObject, public DimDQMJobInterface
 {
 	Q_OBJECT
 
