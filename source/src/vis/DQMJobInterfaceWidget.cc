@@ -976,7 +976,7 @@ bool DQMJobInterfaceWidget::jobControlExists(const std::string &hostName) const
     // Look for DB server
     DimBrowser browser;
 
-    std::string jobControlName = "/DJC/" + hostName + "/JOBSTATUS";
+    std::string jobControlName = "/DJCDQM/" + hostName + "/JOBSTATUS";
     int nServices = browser.getServices(jobControlName.c_str());
 
     return (nServices != 0);
